@@ -13,7 +13,7 @@ const User = require('./models/User');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/sanatan_gyan';
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb+srv://yaransingh4_db_user:MszJDQedkVzRVVKQ@cluster0.c1rayok.mongodb.net/sanatan_gyan?appName=Cluster0';
 const ADMIN_KEY = process.env.ADMIN_KEY || 'sanatan_admin_2026';
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || '').toLowerCase();
 const JWT_SECRET = process.env.JWT_SECRET || 'sanatan_gyan_super_secret_key_2026';
