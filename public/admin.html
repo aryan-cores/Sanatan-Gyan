@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Dashboard | Sanatan Gyan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          gold: { 300: '#f2d492', 400: '#e8bd5e', 500: '#d4a437', 600: '#b3862a' },
+          saffron: { 500: '#ff7e0a', 600: '#f06200' },
+          dark: { 900: '#0a0704', 800: '#120d08', 700: '#1c140c', 600: '#2a1e12' }
+        },
+        fontFamily: { serif: ['Cinzel', 'serif'], sans: ['Poppins', 'sans-serif'] }
+      }
+    }
+  }
+</script>
+<style>
+  body { font-family: 'Poppins', sans-serif; background-color: #0a0704; }
+  .font-serif { font-family: 'Cinzel', serif; }
+  .gold-text { background: linear-gradient(135deg, #f2d492 0%, #d4a437 50%, #ff9d31 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .glass-card { background: rgba(28, 20, 12, 0.55); backdrop-filter: blur(10px); border: 1px solid rgba(212, 164, 55, 0.25); }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #120d08; }
+  ::-webkit-scrollbar-thumb { background: #d4a437; border-radius: 4px; }
+  .tab-btn.active { background: linear-gradient(135deg, #d4a437, #ff9d31); color: #0a0704; }
+  .toast { transition: all 0.4s ease; }
+  table { border-collapse: separate; border-spacing: 0; }
+</style>
+</head>
+<body class="text-gray-200 min-h-screen">
+
+
+<div id="toast" class="toast fixed top-5 right-5 z-[100] translate-x-[150%] opacity-0 max-w-sm">
+  <div id="toastBox" class="glass-card rounded-xl px-5 py-4 shadow-2xl border-l-4 border-gold-500 flex items-start gap-3">
+    <span id="toastIcon" class="text-2xl">✅</span>
+    <p id="toastMessage" class="text-sm text-gray-100"></p>
+  </div>
+</div>
+
+<div id="loginGate" class="min-h-screen flex items-center justify-center px-6">
+  <div class="glass-card rounded-3xl p-10 w-full max-w-md text-center">
+    <p class="text-4xl mb-3">🔐</p>
+    <h1 class="font-serif text-2xl font-bold gold-text mb-2">Admin Portal</h1>
+    <p class="text-gray-400 text-sm mb-8">Enter your admin key to access the Sanatan Gyan dashboard.</p>
+    <form id="loginForm" class="space-y-4">
+      <input type="password" id="adminKeyInput" required placeholder="Admin Key"
+        class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition text-center" />
+      <button type="submit" class="w-full py-3 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold shadow-lg hover:scale-[1.02] transition">
+        Unlock Dashboard
+      </button>
+    </form>
+  </div>
+</div>
+
+
+<div id="dashboard" class="hidden">
+
+  <!-- Header -->
+  <header class="bg-dark-900/90 backdrop-blur-md border-b border-gold-500/20 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2">
+        <span class="text-2xl">🕉️</span>
+        <span class="font-serif text-xl font-bold gold-text">Sanatan Gyan — Admin</span>
+      </a>
+      <div class="flex items-center gap-3">
+        <button id="refreshBtn" class="px-4 py-2 rounded-full border border-gold-500/40 text-sm hover:bg-gold-500/10 transition">🔄 Refresh</button>
+        <button id="logoutBtn" class="px-4 py-2 rounded-full border border-red-500/40 text-red-400 text-sm hover:bg-red-500/10 transition">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-10">
+
+    <!-- Stats -->
+    <div class="grid sm:grid-cols-3 gap-6 mb-10">
+      <div class="glass-card rounded-2xl p-6">
+        <p class="text-gray-400 text-sm mb-1">Total Contacts</p>
+        <p id="statContacts" class="text-3xl font-bold gold-text">0</p>
+      </div>
+      <div class="glass-card rounded-2xl p-6">
+        <p class="text-gray-400 text-sm mb-1">Total Thoughts</p>
+        <p id="statThoughts" class="text-3xl font-bold gold-text">0</p>
+      </div>
+      <div class="glass-card rounded-2xl p-6">
+        <p class="text-gray-400 text-sm mb-1">Pending Approvals</p>
+        <p id="statPending" class="text-3xl font-bold gold-text">0</p>
+      </div>
+    </div>
+
+
+    <div class="flex flex-wrap gap-3 mb-8">
+      <button data-tab="contacts" class="tab-btn active px-6 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">📩 Contact Enquiries</button>
+      <button data-tab="thoughts" class="tab-btn px-6 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">📝 User Thoughts</button>
+    </div>
+
+    <div id="contactsPanel" class="glass-card rounded-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-dark-700/80 text-gold-400 uppercase text-xs tracking-wider">
+            <tr>
+              <th class="px-5 py-4 text-left">Name</th>
+              <th class="px-5 py-4 text-left">Email</th>
+              <th class="px-5 py-4 text-left">Phone</th>
+              <th class="px-5 py-4 text-left">Role</th>
+              <th class="px-5 py-4 text-left">Message</th>
+              <th class="px-5 py-4 text-left">Date</th>
+              <th class="px-5 py-4 text-left">Action</th>
+            </tr>
+          </thead>
+          <tbody id="contactsTableBody" class="divide-y divide-gold-500/10"></tbody>
+        </table>
+      </div>
+      <p id="contactsEmpty" class="hidden text-center text-gray-500 py-10">No contact submissions yet.</p>
+    </div>
+
+   
+    <div id="thoughtsPanel" class="hidden glass-card rounded-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-dark-700/80 text-gold-400 uppercase text-xs tracking-wider">
+            <tr>
+              <th class="px-5 py-4 text-left">Author</th>
+              <th class="px-5 py-4 text-left">Email</th>
+              <th class="px-5 py-4 text-left">Title</th>
+              <th class="px-5 py-4 text-left">Category</th>
+              <th class="px-5 py-4 text-left">Content</th>
+              <th class="px-5 py-4 text-left">Status</th>
+              <th class="px-5 py-4 text-left">Date</th>
+              <th class="px-5 py-4 text-left">Action</th>
+            </tr>
+          </thead>
+          <tbody id="thoughtsTableBody" class="divide-y divide-gold-500/10"></tbody>
+        </table>
+      </div>
+      <p id="thoughtsEmpty" class="hidden text-center text-gray-500 py-10">No thoughts submitted yet.</p>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  
+  function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    const toastBox = document.getElementById('toastBox');
+    const toastIcon = document.getElementById('toastIcon');
+    const toastMessage = document.getElementById('toastMessage');
+
+    toastMessage.textContent = message;
+    if (type === 'success') {
+      toastIcon.textContent = '✅';
+      toastBox.classList.remove('border-red-500');
+      toastBox.classList.add('border-gold-500');
+    } else {
+      toastIcon.textContent = '⚠️';
+      toastBox.classList.remove('border-gold-500');
+      toastBox.classList.add('border-red-500');
+    }
+
+    toast.classList.remove('translate-x-[150%]', 'opacity-0');
+    toast.classList.add('translate-x-0', 'opacity-100');
+
+    setTimeout(() => {
+      toast.classList.add('translate-x-[150%]', 'opacity-0');
+      toast.classList.remove('translate-x-0', 'opacity-100');
+    }, 4500);
+  }
+
+ 
+  const loginGate = document.getElementById('loginGate');
+  const dashboard = document.getElementById('dashboard');
+  const loginForm = document.getElementById('loginForm');
+  const adminKeyInput = document.getElementById('adminKeyInput');
+
+  function getAdminKey() {
+    return sessionStorage.getItem('sg_admin_key');
+  }
+
+  function setAdminKey(key) {
+    sessionStorage.setItem('sg_admin_key', key);
+  }
+
+  function clearAdminKey() {
+    sessionStorage.removeItem('sg_admin_key');
+  }
+
+  async function tryUnlock(key) {
+    // Validate by attempting to fetch contacts with this key
+    try {
+      const res = await fetch('/api/admin/contacts', {
+        headers: { 'x-admin-key': key }
+      });
+      if (res.status === 401) {
+        showToast('Invalid admin key. Please try again.', 'error');
+        return false;
+      }
+      if (!res.ok) {
+        showToast('Unable to connect to server. Please try again.', 'error');
+        return false;
+      }
+      setAdminKey(key);
+      loginGate.classList.add('hidden');
+      dashboard.classList.remove('hidden');
+      loadAllData();
+      return true;
+    } catch (err) {
+      showToast('Network error. Please check your connection.', 'error');
+      return false;
+    }
+  }
+
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const key = adminKeyInput.value.trim();
+    if (!key) return;
+    await tryUnlock(key);
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    clearAdminKey();
+    dashboard.classList.add('hidden');
+    loginGate.classList.remove('hidden');
+    adminKeyInput.value = '';
+  });
+
+  // Auto-unlock if key already stored in this session
+  window.addEventListener('DOMContentLoaded', () => {
+    const savedKey = getAdminKey();
+    if (savedKey) {
+      tryUnlock(savedKey);
+    }
+  });
+
+ 
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const tab = btn.dataset.tab;
+      document.getElementById('contactsPanel').classList.toggle('hidden', tab !== 'contacts');
+      document.getElementById('thoughtsPanel').classList.toggle('hidden', tab !== 'thoughts');
+    });
+  });
+
+  
+  async function fetchWithAuth(url, options = {}) {
+    const key = getAdminKey();
+    const res = await fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        'x-admin-key': key
+      }
+    });
+
+    if (res.status === 401) {
+      showToast('Session expired. Please log in again.', 'error');
+      clearAdminKey();
+      dashboard.classList.add('hidden');
+      loginGate.classList.remove('hidden');
+      throw new Error('Unauthorized');
+    }
+    return res;
+  }
+
+  function formatDate(dateStr) {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) +
+           ' • ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function truncate(text, len) {
+    if (!text) return '';
+    return text.length > len ? text.substring(0, len) + '…' : text;
+  }
+
+  async function loadContacts() {
+    try {
+      const res = await fetchWithAuth('/api/admin/contacts');
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+
+      const tbody = document.getElementById('contactsTableBody');
+      const emptyMsg = document.getElementById('contactsEmpty');
+      tbody.innerHTML = '';
+
+      document.getElementById('statContacts').textContent = data.count;
+
+      if (data.count === 0) {
+        emptyMsg.classList.remove('hidden');
+        return;
+      }
+      emptyMsg.classList.add('hidden');
+
+      data.data.forEach(c => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gold-500/5 transition';
+        row.innerHTML = `
+          <td class="px-5 py-4 font-medium text-gray-100">${escapeHtml(c.name)}</td>
+          <td class="px-5 py-4 text-gray-300">${escapeHtml(c.email)}</td>
+          <td class="px-5 py-4 text-gray-300">${escapeHtml(c.phone)}</td>
+          <td class="px-5 py-4"><span class="px-3 py-1 rounded-full text-xs bg-saffron-500/20 text-saffron-400 border border-saffron-500/30">${escapeHtml(c.role)}</span></td>
+          <td class="px-5 py-4 text-gray-400 max-w-xs" title="${escapeHtml(c.message)}">${escapeHtml(truncate(c.message, 60))}</td>
+          <td class="px-5 py-4 text-gray-500 whitespace-nowrap text-xs">${formatDate(c.createdAt)}</td>
+          <td class="px-5 py-4">
+            <button data-id="${c._id}" class="delete-contact-btn text-red-400 hover:text-red-300 text-xs border border-red-500/30 px-3 py-1.5 rounded-full transition">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      document.querySelectorAll('.delete-contact-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteContact(btn.dataset.id));
+      });
+    } catch (err) {
+      if (err.message !== 'Unauthorized') {
+        showToast('Failed to load contacts.', 'error');
+      }
+    }
+  }
+
+  async function loadThoughts() {
+    try {
+      const res = await fetchWithAuth('/api/admin/thoughts');
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+
+      const tbody = document.getElementById('thoughtsTableBody');
+      const emptyMsg = document.getElementById('thoughtsEmpty');
+      tbody.innerHTML = '';
+
+      document.getElementById('statThoughts').textContent = data.count;
+      const pendingCount = data.data.filter(t => t.status === 'Pending').length;
+      document.getElementById('statPending').textContent = pendingCount;
+
+      if (data.count === 0) {
+        emptyMsg.classList.remove('hidden');
+        return;
+      }
+      emptyMsg.classList.add('hidden');
+
+      data.data.forEach(t => {
+        const isApproved = t.status === 'Approved';
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gold-500/5 transition';
+        row.innerHTML = `
+          <td class="px-5 py-4 font-medium text-gray-100">${escapeHtml(t.authorName)}</td>
+          <td class="px-5 py-4 text-gray-300">${escapeHtml(t.email)}</td>
+          <td class="px-5 py-4 text-gray-100">${escapeHtml(t.title)}</td>
+          <td class="px-5 py-4"><span class="px-3 py-1 rounded-full text-xs bg-gold-500/20 text-gold-400 border border-gold-500/30">${escapeHtml(t.category)}</span></td>
+          <td class="px-5 py-4 text-gray-400 max-w-xs" title="${escapeHtml(t.content)}">${escapeHtml(truncate(t.content, 60))}</td>
+          <td class="px-5 py-4">
+            <span class="px-3 py-1 rounded-full text-xs font-medium ${isApproved ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'}">
+              ${t.status}
+            </span>
+          </td>
+          <td class="px-5 py-4 text-gray-500 whitespace-nowrap text-xs">${formatDate(t.createdAt)}</td>
+          <td class="px-5 py-4 flex gap-2">
+            ${!isApproved ? `<button data-id="${t._id}" class="approve-btn text-green-400 hover:text-green-300 text-xs border border-green-500/30 px-3 py-1.5 rounded-full transition">Approve</button>` :
+              `<button data-id="${t._id}" class="unapprove-btn text-yellow-400 hover:text-yellow-300 text-xs border border-yellow-500/30 px-3 py-1.5 rounded-full transition">Unapprove</button>`}
+            <button data-id="${t._id}" class="delete-thought-btn text-red-400 hover:text-red-300 text-xs border border-red-500/30 px-3 py-1.5 rounded-full transition">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      document.querySelectorAll('.approve-btn').forEach(btn => {
+        btn.addEventListener('click', () => updateThoughtStatus(btn.dataset.id, 'Approved'));
+      });
+      document.querySelectorAll('.unapprove-btn').forEach(btn => {
+        btn.addEventListener('click', () => updateThoughtStatus(btn.dataset.id, 'Pending'));
+      });
+      document.querySelectorAll('.delete-thought-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteThought(btn.dataset.id));
+      });
+    } catch (err) {
+      if (err.message !== 'Unauthorized') {
+        showToast('Failed to load thoughts.', 'error');
+      }
+    }
+  }
+
+  async function updateThoughtStatus(id, status) {
+    try {
+      const res = await fetchWithAuth(`/api/admin/thoughts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message, 'success');
+        loadThoughts();
+      } else {
+        showToast(data.message || 'Failed to update status.', 'error');
+      }
+    } catch (err) {
+      if (err.message !== 'Unauthorized') {
+        showToast('Failed to update thought status.', 'error');
+      }
+    }
+  }
+
+  async function deleteThought(id) {
+    if (!confirm('Are you sure you want to delete this thought?')) return;
+    try {
+      const res = await fetchWithAuth(`/api/admin/thoughts/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message, 'success');
+        loadThoughts();
+      } else {
+        showToast(data.message || 'Failed to delete.', 'error');
+      }
+    } catch (err) {
+      if (err.message !== 'Unauthorized') {
+        showToast('Failed to delete thought.', 'error');
+      }
+    }
+  }
+
+  async function deleteContact(id) {
+    if (!confirm('Are you sure you want to delete this contact submission?')) return;
+    try {
+      const res = await fetchWithAuth(`/api/admin/contacts/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message, 'success');
+        loadContacts();
+      } else {
+        showToast(data.message || 'Failed to delete.', 'error');
+      }
+    } catch (err) {
+      if (err.message !== 'Unauthorized') {
+        showToast('Failed to delete contact.', 'error');
+      }
+    }
+  }
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function loadAllData() {
+    loadContacts();
+    loadThoughts();
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', () => {
+    loadAllData();
+    showToast('Dashboard refreshed.', 'success');
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sanatan Gyan | Eternal Wisdom for the Modern Seeker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Poppins:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            saffron: {
+              50: '#fff8ed', 100: '#ffefd1', 200: '#ffdba3', 300: '#ffc16b',
+              400: '#ff9d31', 500: '#ff7e0a', 600: '#f06200', 700: '#c74a02',
+              800: '#9e3a09', 900: '#7f310c'
+            },
+            gold: {
+              300: '#f2d492', 400: '#e8bd5e', 500: '#d4a437', 600: '#b3862a'
+            },
+            dark: {
+              900: '#0a0704', 800: '#120d08', 700: '#1c140c', 600: '#2a1e12'
+            }
+          },
+          fontFamily: {
+            serif: ['Cinzel', 'serif'],
+            sans: ['Poppins', 'sans-serif'],
+            devanagari: ['Noto Sans Devanagari', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #0a0704;
+    }
+
+    .font-serif {
+      font-family: 'Cinzel', serif;
+    }
+
+    .devanagari {
+      font-family: 'Noto Sans Devanagari', sans-serif;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #120d08;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #d4a437;
+      border-radius: 4px;
+    }
+
+    .gold-text {
+      background: linear-gradient(135deg, #f2d492 0%, #d4a437 50%, #ff9d31 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-bg {
+      background-image: linear-gradient(rgba(10, 7, 4, 0.75), rgba(10, 7, 4, 0.92)), url('hero.png');
+      background-size: cover;
+      background-position: center;
+    }
+
+    .glass-card {
+      background: rgba(28, 20, 12, 0.55);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(212, 164, 55, 0.25);
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, #d4a437, #ff9d31);
+      color: #0a0704;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.6s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .toast {
+      transition: all 0.4s ease;
+    }
+  </style>
+</head>
+
+<body class="text-gray-200">
+
+<div id="authModal" class="hidden fixed inset-0 z-[90] flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm">
+  <div class="glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 w-full max-w-md relative">
+    <button id="closeAuthModal" class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 text-xl">✕</button>
+
+    <div class="flex gap-3 mb-6">
+      <button data-authtab="login" class="auth-tab-btn active flex-1 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">Log In</button>
+      <button data-authtab="signup" class="auth-tab-btn flex-1 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">Sign Up</button>
+    </div>
+
+  
+    <form id="loginFormAuth" class="space-y-4">
+      <h3 class="font-serif text-xl font-bold gold-text text-center mb-2">Welcome Back</h3>
+      <input type="email" name="email" required placeholder="Email address"
+        class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
+      <input type="password" name="password" required minlength="6" placeholder="Password"
+        class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
+      <button type="submit" id="loginSubmitBtn" class="w-full py-3 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold shadow-lg hover:scale-[1.02] transition">
+        Log In
+      </button>
+    </form>
+
+   
+    <form id="signupFormAuth" class="hidden space-y-4">
+      <h3 class="font-serif text-xl font-bold gold-text text-center mb-2">Create Your Account</h3>
+      <input type="text" name="name" required minlength="2" placeholder="Full name"
+        class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
+      <input type="email" name="email" required placeholder="Email address"
+        class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
+      <input type="password" name="password" required minlength="6" placeholder="Password (min. 6 characters)"
+        class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
+      <button type="submit" id="signupSubmitBtn" class="w-full py-3 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold shadow-lg hover:scale-[1.02] transition">
+        Sign Up
+      </button>
+    </form>
+  </div>
+</div>
+
+
+<div id="changePasswordModal" class="hidden fixed inset-0 z-[90] flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm">
+  <div class="glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 w-full max-w-md relative">
+    <button id="closeChangePasswordModal" class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 text-xl">✕</button>
+    <h3 class="font-serif text-xl font-bold gold-text text-center mb-6">🔒 Change Password</h3>
+
+    <form id="changePasswordForm" class="space-y-4">
+      <div>
+        <label class="block text-sm text-gold-400 mb-2">Current Password</label>
+        <input type="password" name="currentPassword" required minlength="6" placeholder="Enter current password"
+          class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
+      </div>
+      <div>
+        <label class="block text-sm text-gold-400 mb-2">New Password</label>
+        <input type="password" name="newPassword" required minlength="6" placeholder="At least 6 characters"
+          class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
+      </div>
+      <div>
+        <label class="block text-sm text-gold-400 mb-2">Confirm New Password</label>
+        <input type="password" name="confirmNewPassword" required minlength="6" placeholder="Re-enter new password"
+          class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
+      </div>
+      <button type="submit" id="changePasswordSubmitBtn" class="w-full py-3 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold shadow-lg hover:scale-[1.02] transition">
+        Update Password
+      </button>
+    </form>
+  </div>
+</div>
+
+<div id="commentsModal" class="hidden fixed inset-0 z-[90] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm">
+  <div class="glass-card rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-lg max-h-[85vh] flex flex-col relative">
+    <button id="closeCommentsModal" class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 text-xl">✕</button>
+    <h3 class="font-serif text-xl font-bold gold-text mb-1 pr-8" id="commentsModalTitle">Comments</h3>
+    <p class="text-xs text-gray-500 mb-4" id="commentsModalCount">0 comments</p>
+
+    <div id="commentsList" class="flex-1 overflow-y-auto space-y-4 mb-4 pr-1"></div>
+    <p id="commentsEmptyMsg" class="hidden text-center text-gray-500 text-sm py-6">No comments yet. Be the first to share your thoughts.</p>
+
+    <form id="addCommentForm" class="flex items-end gap-2 pt-4 border-t border-gold-500/20">
+      <textarea id="commentInput" rows="2" maxlength="1000" placeholder="Add a comment..."
+        class="flex-1 bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:border-gold-500 transition resize-none"></textarea>
+      <button type="submit" id="commentSubmitBtn" class="px-4 py-2 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold text-sm shrink-0 hover:scale-105 transition">Post</button>
+    </form>
+    <p id="commentLoginPrompt" class="hidden text-center text-sm text-gray-400 pt-3">
+      <a href="#" id="commentLoginLink" class="text-gold-400 underline">Log in</a> to join the conversation.
+    </p>
+  </div>
+</div>
+ 
+  <div id="toast" class="toast fixed top-5 right-5 z-[100] translate-x-[150%] opacity-0 max-w-sm">
+    <div id="toastBox"
+      class="glass-card rounded-xl px-5 py-4 shadow-2xl border-l-4 border-gold-500 flex items-start gap-3">
+      <span id="toastIcon" class="text-2xl">✅</span>
+      <p id="toastMessage" class="text-sm text-gray-100"></p>
+    </div>
+  </div>
+
+
+  <header class="fixed top-0 w-full z-50 bg-dark-900/90 backdrop-blur-md border-b border-gold-500/20">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="#home" class="flex items-center gap-2">
+        <span class="text-3xl">🕉️</span>
+        <span class="font-serif text-2xl font-bold gold-text tracking-wide">Sanatan Gyan</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-6 text-sm font-medium">
+  <a href="#home" class="hover:text-gold-400 transition">Home</a>
+  <a href="#wisdom" class="hover:text-gold-400 transition">Explore Wisdom</a>
+  <a href="#sloka" class="hover:text-gold-400 transition">Daily Sloka</a>
+  <a href="#community" class="hover:text-gold-400 transition">Community</a>
+  <a href="#thoughts" class="hover:text-gold-400 transition">Share Thoughts</a>
+  <a href="#join" class="hover:text-gold-400 transition">Join Us</a>
+  <a id="adminPortalBtn" href="/admin" class="hidden px-4 py-2 rounded-full border border-gold-500 text-gold-400 hover:bg-gold-500 hover:text-dark-900 transition">Admin Portal</a>
+
+
+  <div id="authButtons" class="flex items-center gap-2">
+    <button id="loginNavBtn" class="px-4 py-2 rounded-full border border-gold-500/50 text-gold-400 hover:bg-gold-500/10 transition text-sm">Log In</button>
+    <button id="signupNavBtn" class="px-4 py-2 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold text-sm hover:scale-105 transition">Sign Up</button>
+  </div>
+
+  
+  <div id="userMenu" class="hidden items-center gap-3 relative">
+    <button id="userMenuBtn" class="flex items-center gap-2">
+      <span id="userAvatar" class="w-9 h-9 rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-sm"></span>
+      <span id="userNameLabel" class="text-gray-200 text-sm max-w-[100px] truncate"></span>
+    </button>
+    <div id="userDropdown" class="hidden absolute top-12 right-0 glass-card rounded-xl py-2 w-48 shadow-2xl z-50">
+      <button id="changePasswordNavBtn" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gold-500/10 transition">🔒 Change Password</button>
+      <button id="logoutBtn" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition">Logout</button>
+    </div>
+  </div>
+</nav>
+<button id="mobileMenuBtn" class="md:hidden text-gold-400 text-2xl">☰</button>
+    </div>
+   <div id="mobileMenu" class="hidden md:hidden flex-col gap-3 px-6 pb-4 bg-dark-900/95">
+  <a href="#home" class="py-2 border-b border-gold-500/10">Home</a>
+  <a href="#wisdom" class="py-2 border-b border-gold-500/10">Explore Wisdom</a>
+  <a href="#sloka" class="py-2 border-b border-gold-500/10">Daily Sloka</a>
+  <a href="#community" class="py-2 border-b border-gold-500/10">Community</a>
+  <a href="#thoughts" class="py-2 border-b border-gold-500/10">Share Thoughts</a>
+  <a href="#join" class="py-2 border-b border-gold-500/10">Join Us</a>
+  <a id="mobileAdminPortalBtn" href="/admin" class="hidden py-2 border-b border-gold-500/10 text-gold-400">Admin Portal</a>
+  <div id="mobileAuthButtons" class="flex gap-2 pt-2">
+    <button id="mobileLoginBtn" class="flex-1 px-4 py-2 rounded-full border border-gold-500/50 text-gold-400 text-sm">Log In</button>
+    <button id="mobileSignupBtn" class="flex-1 px-4 py-2 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold text-sm">Sign Up</button>
+  </div>
+  <div id="mobileUserMenu" class="hidden pt-2 space-y-2">
+    <p class="text-gray-300 text-sm mb-2">Signed in as <span id="mobileUserNameLabel" class="text-gold-400 font-medium"></span></p>
+    <button id="mobileChangePasswordBtn" class="w-full px-4 py-2 rounded-full border border-gold-500/40 text-gold-400 text-sm">🔒 Change Password</button>
+    <button id="mobileLogoutBtn" class="w-full px-4 py-2 rounded-full border border-red-500/40 text-red-400 text-sm">Logout</button>
+  </div>
+</div>
+  </header>
+
+
+  <section id="home" class="hero-bg min-h-screen flex items-center justify-center pt-24 px-6 relative overflow-hidden">
+    <div class="absolute top-1/3 left-10 w-72 h-72 bg-saffron-500/20 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-10 right-10 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl"></div>
+    <div class="max-w-4xl text-center relative z-10 fade-in">
+      <p class="devanagari text-gold-400 text-xl md:text-2xl mb-4 tracking-wide">सत्यमेव जयते</p>
+      <h1 class="font-serif text-4xl md:text-6xl font-bold mb-6 leading-tight">
+        Discover the <span class="gold-text">Eternal Wisdom</span><br /> of Sanatan Dharma
+      </h1>
+      <p class="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-10">
+        A sanctuary for seekers — explore the Gita, Vedas, Upanishads, and timeless philosophy.
+        Learn, reflect, and share your journey with a global community of wisdom-lovers.
+      </p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="#wisdom"
+          class="px-8 py-3 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold shadow-lg shadow-saffron-500/30 hover:scale-105 transition">Begin
+          Your Journey</a>
+        <a href="#thoughts"
+          class="px-8 py-3 rounded-full border border-gold-500 text-gold-400 hover:bg-gold-500/10 transition">Share Your
+          Thoughts</a>
+      </div>
+    </div>
+  </section>
+
+
+  <section id="wisdom" class="py-24 px-6 bg-dark-800">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-14">
+        <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3">Sacred Texts</p>
+        <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text">Explore Wisdom</h2>
+      </div>
+
+      <div class="flex flex-wrap justify-center gap-3 mb-10" id="wisdomTabs">
+        <button data-tab="gita"
+          class="tab-btn active px-6 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">Bhagavad
+          Gita</button>
+        <button data-tab="vedas"
+          class="tab-btn px-6 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">Vedas</button>
+        <button data-tab="upanishads"
+          class="tab-btn px-6 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">Upanishads</button>
+        <button data-tab="philosophy"
+          class="tab-btn px-6 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">Philosophy</button>
+      </div>
+
+      <div id="wisdomContent" class="grid md:grid-cols-2 gap-8 items-center fade-in">
+        
+      </div>
+    </div>
+  </section>
+
+ 
+  <section id="sloka" class="py-24 px-6 bg-gradient-to-b from-dark-900 to-dark-800 relative">
+    <div class="max-w-4xl mx-auto text-center">
+      <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3">Daily Inspiration</p>
+      <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text mb-4">Daily Sloka</h2>
+      <p class="text-gray-400 mb-12">Click below to receive a verse of wisdom for your day.</p>
+
+      <div class="glass-card rounded-3xl p-8 md:p-12 shadow-2xl">
+        <p id="slokaSanskrit" class="devanagari text-2xl md:text-3xl text-gold-300 leading-relaxed mb-6"></p>
+        <p id="slokaTransliteration" class="italic text-gray-400 mb-6"></p>
+        <div class="border-t border-gold-500/20 pt-6 grid md:grid-cols-2 gap-6 text-left">
+          <div>
+            <p class="text-gold-400 text-xs uppercase tracking-widest mb-2">English</p>
+            <p id="slokaEnglish" class="text-gray-200"></p>
+          </div>
+          <div>
+            <p class="text-gold-400 text-xs uppercase tracking-widest mb-2">हिंदी</p>
+            <p id="slokaHindi" class="devanagari text-gray-200"></p>
+          </div>
+        </div>
+        <p id="slokaSource" class="text-gold-500 text-sm mt-6"></p>
+      </div>
+
+      <button id="newSlokaBtn"
+        class="mt-8 px-8 py-3 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold shadow-lg hover:scale-105 transition">
+        ✨ Reveal Today's Sloka
+      </button>
+    </div>
+  </section>
+
+ 
+  <section id="community" class="py-16 sm:py-24 px-4 sm:px-6 bg-dark-800">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-12">
+        <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3">Voices of the Community</p>
+        <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text">Community Insights &amp; Thoughts</h2>
+        <p class="text-gray-400 mt-4 max-w-2xl mx-auto">Reflections, essays, and insights shared by fellow seekers on this path.</p>
+      </div>
+
+      <div id="communityGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      <p id="communityEmptyMsg" class="hidden text-center text-gray-500 py-10">No approved thoughts yet. Be the first to share yours below!</p>
+      <p id="communityLoadingMsg" class="text-center text-gray-500 py-10">Loading community thoughts...</p>
+    </div>
+  </section>
+
+  <section id="thoughts" class="py-24 px-6 bg-gradient-to-b from-dark-800 to-dark-900">
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-12">
+        <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3">Your Voice Matters</p>
+        <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text">Present Your Thought</h2>
+        <p class="text-gray-400 mt-4">Share an article, reflection, or insight with our community.</p>
+      </div>
+
+      <form id="thoughtForm" class="glass-card rounded-3xl p-8 md:p-10 grid md:grid-cols-2 gap-6">
+        <div class="md:col-span-1">
+          <label class="block text-sm text-gold-400 mb-2">Author Name</label>
+          <input type="text" name="authorName" required minlength="2" maxlength="100"
+            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
+            placeholder="Your name" />
+        </div>
+        <div class="md:col-span-1">
+          <label class="block text-sm text-gold-400 mb-2">Email Address</label>
+          <input type="email" name="email" required
+            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
+            placeholder="you@example.com" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm text-gold-400 mb-2">Title</label>
+          <input type="text" name="title" required minlength="3" maxlength="200"
+            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
+            placeholder="Title of your thought/article" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm text-gold-400 mb-2">Category</label>
+          <select name="category" required
+            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition">
+            <option value="" disabled selected>Select a category</option>
+            <option value="Philosophy">Philosophy</option>
+            <option value="Gita">Gita</option>
+            <option value="History">History</option>
+            <option value="General">General</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm text-gold-400 mb-2">Your Thought / Article</label>
+          <textarea name="content" required minlength="20" maxlength="10000" rows="6"
+            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
+            placeholder="Write your reflection here..."></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <button type="submit" id="thoughtSubmitBtn"
+            class="w-full py-3 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold shadow-lg hover:scale-[1.02] transition">
+            Submit Thought
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+
+  <section id="join" class="py-24 px-6 bg-dark-800">
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-12">
+        <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3">Be Part of the Journey</p>
+        <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text">Join Sanatan Gyan</h2>
+        <p class="text-gray-400 mt-4">Whether you wish to learn, volunteer, or contribute — we welcome you.</p>
+      </div>
+
+      <form id="contactForm" class="glass-card rounded-3xl p-8 md:p-10 grid md:grid-cols-2 gap-6">
+        <div class="md:col-span-1">
+          <label class="block text-sm text-gold-400 mb-2">Full Name</label>
+          <input type="text" name="name" required minlength="2" maxlength="100"
+            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
+            placeholder="Your name" />
+        </div>
+        <div class="md:col-span-1">
+          <label class="block text-sm text-gold-400 mb-2">Email Address</label>
+          <input type="email" name="email" required
+            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
+            placeholder="you@example.com" />
+        </div>
+        <div class="md:col-span-1">
+          <label class="block text-sm text-gold-400 mb-2">Phone Number</label>
+          <input type="tel" name="phone" required
+            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
+            placeholder="+91 98765 43210" />
+        </div>
+        <div class="md:col-span-1">
+          <label class="block text-sm text-gold-400 mb-2">I want to join as</label>
+          <select name="role" required
+            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition">
+            <option value="" disabled selected>Select a role</option>
+            <option value="Learner">Learner</option>
+            <option value="Volunteer">Volunteer</option>
+            <option value="Contributor">Contributor</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm text-gold-400 mb-2">Message</label>
+          <textarea name="message" required minlength="5" maxlength="2000" rows="4"
+            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
+            placeholder="Tell us why you'd like to join..."></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <button type="submit" id="contactSubmitBtn"
+            class="w-full py-3 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold shadow-lg hover:scale-[1.02] transition">
+            Submit
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+  
+  <footer class="bg-dark-900 border-t border-gold-500/20 py-10 px-6 text-center">
+    <p class="font-serif text-xl gold-text mb-2">🕉️ Sanatan Gyan</p>
+    <p class="text-gray-500 text-sm">© 2026 Sanatan Gyan. All rights reserved. Wisdom for the timeless seeker.</p>
+  </footer>
+
+  <script>
+  
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    mobileMenuBtn.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+      mobileMenu.classList.toggle('flex');
+    });
+    document.querySelectorAll('#mobileMenu a').forEach(link => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.add('hidden');
+        mobileMenu.classList.remove('flex');
+      });
+    });
+
+    // ===================== TOAST =====================
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const toastBox = document.getElementById('toastBox');
+      const toastIcon = document.getElementById('toastIcon');
+      const toastMessage = document.getElementById('toastMessage');
+
+      toastMessage.textContent = message;
+      if (type === 'success') {
+        toastIcon.textContent = '✅';
+        toastBox.classList.remove('border-red-500');
+        toastBox.classList.add('border-gold-500');
+      } else {
+        toastIcon.textContent = '⚠️';
+        toastBox.classList.remove('border-gold-500');
+        toastBox.classList.add('border-red-500');
+      }
+
+      toast.classList.remove('translate-x-[150%]', 'opacity-0');
+      toast.classList.add('translate-x-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.add('translate-x-[150%]', 'opacity-0');
+        toast.classList.remove('translate-x-0', 'opacity-100');
+      }, 4500);
+    }
+
+   
+    const wisdomData = {
+      gita: {
+        title: 'Bhagavad Gita',
+        image: 'gita.png',
+        desc: 'The Bhagavad Gita is a 700-verse dialogue between Prince Arjuna and Lord Krishna on the battlefield of Kurukshetra. It addresses the moral and philosophical dilemmas of duty (dharma), righteous action (karma yoga), devotion (bhakti yoga), and the path to self-realization (jnana yoga), making it one of the most revered spiritual texts in the world.',
+        points: ['18 Chapters, 700 Verses', 'Core of Karma, Bhakti & Jnana Yoga', 'Dialogue between Krishna & Arjuna']
+      },
+      vedas: {
+        title: 'The Vedas',
+        image: 'vedas.png',
+        desc: 'The Vedas are the oldest sacred texts of Sanatan Dharma, composed of four collections — Rigveda, Yajurveda, Samaveda, and Atharvaveda. They contain hymns, rituals, philosophy, and cosmological insights that form the bedrock of Vedic civilization and spiritual practice.',
+        points: ['Rigveda, Yajurveda, Samaveda, Atharvaveda', 'Oldest scriptures of Sanatan Dharma', 'Foundation of ritual & philosophical thought']
+      },
+      upanishads: {
+        title: 'The Upanishads',
+        image: 'upanishad.png',
+        desc: 'The Upanishads are philosophical texts that form the concluding portion of the Vedas (Vedanta). They explore the nature of ultimate reality (Brahman), the individual self (Atman), and the union between the two — laying the intellectual foundation for later Indian philosophical schools.',
+        points: ['108 principal Upanishads', 'Explores Atman & Brahman', 'Foundation of Vedanta philosophy']
+      },
+      philosophy: {
+        title: 'Sanatan Philosophy',
+        image: 'philosophy.png',
+        desc: 'Sanatan philosophy encompasses six classical schools of thought (Shad Darshana) — Nyaya, Vaisheshika, Samkhya, Yoga, Mimamsa, and Vedanta — each offering distinct approaches to understanding reality, knowledge, ethics, and liberation (moksha).',
+        points: ['Shad Darshana: Six schools of thought', 'Concepts of Dharma, Karma & Moksha', 'A living tradition of inquiry']
+      }
+    };
+
+    function renderWisdomTab(tab) {
+      const data = wisdomData[tab];
+      const container = document.getElementById('wisdomContent');
+      container.classList.remove('fade-in');
+      void container.offsetWidth; // reflow to restart animation
+      container.classList.add('fade-in');
+
+      container.innerHTML = `
+      <div class="rounded-3xl overflow-hidden shadow-2xl">
+        <img src="${data.image}" alt="${data.title}" class="w-full h-80 object-cover" />
+      </div>
+      <div class="glass-card rounded-3xl p-8">
+        <h3 class="font-serif text-2xl font-bold gold-text mb-4">${data.title}</h3>
+        <p class="text-gray-300 leading-relaxed mb-6">${data.desc}</p>
+        <ul class="space-y-2">
+          ${data.points.map(p => `<li class="flex items-center gap-2 text-sm text-gray-300"><span class="text-gold-400">✦</span> ${p}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderWisdomTab(btn.dataset.tab);
+      });
+    });
+    renderWisdomTab('gita');
+
+    
+    const slokas = [
+      {
+        sanskrit: 'कर्मण्येवाधिकारस्ते मा फलेषु कदाचन। मा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि॥',
+        transliteration: 'karmaṇy-evādhikāras te mā phaleṣu kadācana',
+        english: 'You have the right to perform your duty, but never to the fruits of your actions. Let not the fruits of action be your motive, nor let your attachment be to inaction.',
+        hindi: 'तुम्हारा अधिकार केवल कर्म करने में है, फल में कभी नहीं। कर्मफल की इच्छा से कर्म मत करो, और न ही कर्म न करने में आसक्त होओ।',
+        source: 'Bhagavad Gita, Chapter 2, Verse 47'
+      },
+      {
+        sanskrit: 'योगः कर्मसु कौशलम्।',
+        transliteration: 'yogaḥ karmasu kauśalam',
+        english: 'Yoga is skill and excellence in action.',
+        hindi: 'योग ही कर्मों में कुशलता है।',
+        source: 'Bhagavad Gita, Chapter 2, Verse 50'
+      },
+      {
+        sanskrit: 'असतो मा सद्गमय। तमसो मा ज्योतिर्गमय। मृत्योर्मा अमृतं गमय॥',
+        transliteration: 'asato mā sad gamaya, tamaso mā jyotir gamaya, mṛtyor mā amṛtaṁ gamaya',
+        english: 'Lead me from untruth to truth, from darkness to light, from death to immortality.',
+        hindi: 'हमें असत्य से सत्य की ओर ले चलो, अंधकार से प्रकाश की ओर ले चलो, मृत्यु से अमरता की ओर ले चलो।',
+        source: 'Brihadaranyaka Upanishad, 1.3.28'
+      },
+      {
+        sanskrit: 'वसुधैव कुटुम्बकम्।',
+        transliteration: 'vasudhaiva kuṭumbakam',
+        english: 'The whole world is one family.',
+        hindi: 'सारा संसार एक परिवार है।',
+        source: 'Maha Upanishad, Chapter 6, Verse 71'
+      },
+      {
+        sanskrit: 'सत्यं वद। धर्मं चर।',
+        transliteration: 'satyaṁ vada, dharmaṁ cara',
+        english: 'Speak the truth. Follow the path of righteousness.',
+        hindi: 'सत्य बोलो। धर्म का पालन करो।',
+        source: 'Taittiriya Upanishad, 1.11.1'
+      },
+      {
+        sanskrit: 'अहिंसा परमो धर्मः।',
+        transliteration: 'ahiṁsā paramo dharmaḥ',
+        english: 'Non-violence is the highest duty/virtue.',
+        hindi: 'अहिंसा सबसे बड़ा धर्म है।',
+        source: 'Mahabharata, Anushasana Parva'
+      },
+      {
+        sanskrit: 'सर्वे भवन्तु सुखिनः सर्वे सन्तु निरामयाः।',
+        transliteration: 'sarve bhavantu sukhinaḥ sarve santu nirāmayāḥ',
+        english: 'May all beings be happy, may all beings be free from illness.',
+        hindi: 'सभी सुखी हों, सभी रोगमुक्त हों।',
+        source: 'Brihadaranyaka Upanishad (Peace Invocation)'
+      },
+      {
+        sanskrit: 'उद्धरेदात्मनात्मानं नात्मानमवसादयेत्। आत्मैव ह्यात्मनो बन्धुरात्मैव रिपुरात्मनः॥',
+        transliteration: 'uddhared ātmanātmānaṁ nātmānam avasādayet',
+        english: 'One must elevate oneself by one\'s own self; let not the self degrade itself. The self alone is the friend of the self, and the self alone is the enemy of the self.',
+        hindi: 'मनुष्य को स्वयं अपने द्वारा अपना उद्धार करना चाहिए, स्वयं को अधोगति में नहीं ले जाना चाहिए। आत्मा ही आत्मा का मित्र है और आत्मा ही आत्मा का शत्रु है।',
+        source: 'Bhagavad Gita, Chapter 6, Verse 5'
+      }
+    ];
+
+    function displayRandomSloka() {
+      const sloka = slokas[Math.floor(Math.random() * slokas.length)];
+      document.getElementById('slokaSanskrit').textContent = sloka.sanskrit;
+      document.getElementById('slokaTransliteration').textContent = sloka.transliteration;
+      document.getElementById('slokaEnglish').textContent = sloka.english;
+      document.getElementById('slokaHindi').textContent = sloka.hindi;
+      document.getElementById('slokaSource').textContent = `— ${sloka.source}`;
+    }
+    document.getElementById('newSlokaBtn').addEventListener('click', displayRandomSloka);
+    displayRandomSloka(); // Show one on load
+
+  
+    const contactForm = document.getElementById('contactForm');
+    contactForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('contactSubmitBtn');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      const formData = new FormData(contactForm);
+      const payload = Object.fromEntries(formData.entries());
+
+      try {
+        const res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          showToast(data.message, 'success');
+          contactForm.reset();
+        } else {
+          showToast(data.message || 'Something went wrong. Please try again.', 'error');
+        }
+      } catch (err) {
+        showToast('Network error. Please check your connection and try again.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    });
+
+    
+    const thoughtForm = document.getElementById('thoughtForm');
+    thoughtForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('thoughtSubmitBtn');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      const formData = new FormData(thoughtForm);
+      const payload = Object.fromEntries(formData.entries());
+
+      try {
+        const res = await fetch('/api/thoughts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          showToast(data.message, 'success');
+          thoughtForm.reset();
+        } else {
+          showToast(data.message || 'Something went wrong. Please try again.', 'error');
+        }
+      } catch (err) {
+        showToast('Network error. Please check your connection and try again.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    });
+
+const AUTH_TOKEN_KEY = 'sg_token';
+const AUTH_USER_KEY = 'sg_user';
+
+
+function getToken() { return localStorage.getItem(AUTH_TOKEN_KEY); }
+function getStoredUser() {
+  const raw = localStorage.getItem(AUTH_USER_KEY);
+  return raw ? JSON.parse(raw) : null;
+}
+function saveAuth(token, user) {
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+}
+function clearAuth() {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(AUTH_USER_KEY);
+}
+function getInitials(name) {
+  return name.trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+}
+
+function updateAuthUI() {
+  const user = getStoredUser();
+  const authButtons = document.getElementById('authButtons');
+  const userMenu = document.getElementById('userMenu');
+  const mobileAuthButtons = document.getElementById('mobileAuthButtons');
+  const mobileUserMenu = document.getElementById('mobileUserMenu');
+  const adminPortalBtn = document.getElementById('adminPortalBtn');
+  const mobileAdminPortalBtn = document.getElementById('mobileAdminPortalBtn');
+
+  if (user) {
+    authButtons.classList.add('hidden');
+    userMenu.classList.remove('hidden');
+    userMenu.classList.add('flex');
+    mobileAuthButtons.classList.add('hidden');
+    mobileUserMenu.classList.remove('hidden');
+
+    const avatarEl = document.getElementById('userAvatar');
+    avatarEl.textContent = getInitials(user.name);
+    avatarEl.style.backgroundColor = user.avatarColor || '#d4a437';
+    document.getElementById('userNameLabel').textContent = user.name;
+    document.getElementById('mobileUserNameLabel').textContent = user.name;
+
+   
+    const isAdmin = user.isAdmin === true;
+    adminPortalBtn.classList.toggle('hidden', !isAdmin);
+    mobileAdminPortalBtn.classList.toggle('hidden', !isAdmin);
+  } else {
+    authButtons.classList.remove('hidden');
+    userMenu.classList.add('hidden');
+    userMenu.classList.remove('flex');
+    mobileAuthButtons.classList.remove('hidden');
+    mobileUserMenu.classList.add('hidden');
+
+  
+    adminPortalBtn.classList.add('hidden');
+    mobileAdminPortalBtn.classList.add('hidden');
+  }
+}
+updateAuthUI();
+
+// Auth modal open/close
+const authModal = document.getElementById('authModal');
+function openAuthModal(tab = 'login') {
+  authModal.classList.remove('hidden');
+  document.querySelectorAll('.auth-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-authtab="${tab}"]`).classList.add('active');
+  document.getElementById('loginFormAuth').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('signupFormAuth').classList.toggle('hidden', tab !== 'signup');
+}
+function closeAuthModal() { authModal.classList.add('hidden'); }
+
+document.getElementById('loginNavBtn').addEventListener('click', () => openAuthModal('login'));
+document.getElementById('signupNavBtn').addEventListener('click', () => openAuthModal('signup'));
+document.getElementById('mobileLoginBtn').addEventListener('click', () => { mobileMenu.classList.add('hidden'); openAuthModal('login'); });
+document.getElementById('mobileSignupBtn').addEventListener('click', () => { mobileMenu.classList.add('hidden'); openAuthModal('signup'); });
+document.getElementById('closeAuthModal').addEventListener('click', closeAuthModal);
+authModal.addEventListener('click', (e) => { if (e.target === authModal) closeAuthModal(); });
+
+document.querySelectorAll('.auth-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => openAuthModal(btn.dataset.authtab));
+});
+
+// User dropdown menu
+const userMenuBtn = document.getElementById('userMenuBtn');
+const userDropdown = document.getElementById('userDropdown');
+userMenuBtn.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
+document.addEventListener('click', (e) => {
+  if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+    userDropdown.classList.add('hidden');
+  }
+});
+
+function doLogout() {
+  clearAuth();
+  updateAuthUI();
+  showToast('You have been logged out.', 'success');
+  loadCommunityThoughts();
+}
+document.getElementById('logoutBtn').addEventListener('click', doLogout);
+document.getElementById('mobileLogoutBtn').addEventListener('click', doLogout);
+
+
+const changePasswordModal = document.getElementById('changePasswordModal');
+
+function openChangePasswordModal() {
+  userDropdown.classList.add('hidden');
+  mobileMenu.classList.add('hidden');
+  mobileMenu.classList.remove('flex');
+  changePasswordModal.classList.remove('hidden');
+}
+function closeChangePasswordModal() {
+  changePasswordModal.classList.add('hidden');
+  document.getElementById('changePasswordForm').reset();
+}
+
+document.getElementById('changePasswordNavBtn').addEventListener('click', openChangePasswordModal);
+document.getElementById('mobileChangePasswordBtn').addEventListener('click', openChangePasswordModal);
+document.getElementById('closeChangePasswordModal').addEventListener('click', closeChangePasswordModal);
+changePasswordModal.addEventListener('click', (e) => { if (e.target === changePasswordModal) closeChangePasswordModal(); });
+
+document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const token = getToken();
+  if (!token) {
+    showToast('Please log in first.', 'error');
+    return;
+  }
+
+  const formData = new FormData(e.target);
+  const currentPassword = formData.get('currentPassword');
+  const newPassword = formData.get('newPassword');
+  const confirmNewPassword = formData.get('confirmNewPassword');
+
+  if (newPassword !== confirmNewPassword) {
+    showToast('New password and confirmation do not match.', 'error');
+    return;
+  }
+  if (newPassword.length < 6) {
+    showToast('New password must be at least 6 characters long.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('changePasswordSubmitBtn');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  try {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+    const data = await res.json();
+
+    if (res.status === 401) {
+      showToast('Session expired. Please log in again.', 'error');
+      clearAuth();
+      updateAuthUI();
+      closeChangePasswordModal();
+      openAuthModal('login');
+      return;
+    }
+
+    if (res.ok && data.success) {
+      showToast(data.message, 'success');
+      closeChangePasswordModal();
+    } else {
+      showToast(data.message || 'Failed to update password.', 'error');
+    }
+  } catch (err) {
+    showToast('Network error. Please try again.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+});
+
+document.getElementById('loginFormAuth').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('loginSubmitBtn');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Logging in...';
+
+  const formData = new FormData(e.target);
+  const payload = Object.fromEntries(formData.entries());
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      saveAuth(data.token, data.user);
+      updateAuthUI();
+      closeAuthModal();
+      showToast(data.message, 'success');
+      e.target.reset();
+      loadCommunityThoughts();
+    } else {
+      showToast(data.message || 'Login failed.', 'error');
+    }
+  } catch (err) {
+    showToast('Network error. Please try again.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+});
+
+
+document.getElementById('signupFormAuth').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('signupSubmitBtn');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Creating account...';
+
+  const formData = new FormData(e.target);
+  const payload = Object.fromEntries(formData.entries());
+
+  try {
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      saveAuth(data.token, data.user);
+      updateAuthUI();
+      closeAuthModal();
+      showToast(data.message, 'success');
+      e.target.reset();
+      loadCommunityThoughts();
+    } else {
+      showToast(data.message || 'Sign up failed.', 'error');
+    }
+  } catch (err) {
+    showToast('Network error. Please try again.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+});
+
+
+const categoryColors = {
+  Philosophy: 'bg-gold-500/20 text-gold-400 border-gold-500/30',
+  Gita: 'bg-saffron-500/20 text-saffron-400 border-saffron-500/30',
+  History: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  General: 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+};
+
+function escapeHtmlPublic(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+function timeAgo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 2592000) return `${Math.floor(diff / 86400)}d ago`;
+  return new Date(dateStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+async function loadCommunityThoughts() {
+  const grid = document.getElementById('communityGrid');
+  const emptyMsg = document.getElementById('communityEmptyMsg');
+  const loadingMsg = document.getElementById('communityLoadingMsg');
+
+  loadingMsg.classList.remove('hidden');
+  emptyMsg.classList.add('hidden');
+  grid.innerHTML = '';
+
+  try {
+    const token = getToken();
+    const res = await fetch('/api/thoughts/approved', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+    const data = await res.json();
+    loadingMsg.classList.add('hidden');
+
+    if (!data.success || data.count === 0) {
+      emptyMsg.classList.remove('hidden');
+      return;
+    }
+
+    data.data.forEach(t => grid.appendChild(buildThoughtCard(t)));
+  } catch (err) {
+    loadingMsg.textContent = 'Failed to load community thoughts.';
+  }
+}
+
+function buildThoughtCard(t) {
+  const card = document.createElement('div');
+  card.className = 'glass-card rounded-2xl p-6 flex flex-col fade-in';
+  card.dataset.id = t._id;
+
+  const badgeClass = categoryColors[t.category] || categoryColors.General;
+  const showLikeCount = t.likeCount >= 50;
+  const likeLabel = showLikeCount ? `${t.likeCount}` : (t.likedByMe ? 'Liked' : 'Like');
+
+  card.innerHTML = `
+    <div class="flex items-center justify-between mb-3">
+      <span class="px-3 py-1 rounded-full text-xs border ${badgeClass}">${escapeHtmlPublic(t.category)}</span>
+      <span class="text-xs text-gray-500">${timeAgo(t.createdAt)}</span>
+    </div>
+    <h3 class="font-serif text-lg font-bold text-gray-100 mb-2 leading-snug">${escapeHtmlPublic(t.title)}</h3>
+    <p class="text-gray-400 text-sm leading-relaxed mb-4 flex-1">${escapeHtmlPublic(t.content.substring(0, 180))}${t.content.length > 180 ? '…' : ''}</p>
+    <p class="text-xs text-gold-400 mb-4">✍️ ${escapeHtmlPublic(t.authorName)}</p>
+    <div class="flex items-center gap-4 pt-4 border-t border-gold-500/10">
+      <button class="like-btn flex items-center gap-2 text-sm transition ${t.likedByMe ? 'text-red-400' : 'text-gray-400 hover:text-red-400'}" data-id="${t._id}">
+        <span class="like-icon">${t.likedByMe ? '❤️' : '🤍'}</span>
+        <span class="like-label">${likeLabel}</span>
+      </button>
+      <button class="comment-btn flex items-center gap-2 text-sm text-gray-400 hover:text-gold-400 transition" data-id="${t._id}" data-title="${escapeHtmlPublic(t.title)}">
+        <span>💬</span>
+        <span class="comment-count-label">${t.commentCount}</span>
+      </button>
+    </div>
+  `;
+
+  card.querySelector('.like-btn').addEventListener('click', () => handleLike(t._id, card));
+  card.querySelector('.comment-btn').addEventListener('click', () => openCommentsModal(t._id, t.title));
+
+  return card;
+}
+
+async function handleLike(thoughtId, cardEl) {
+  const token = getToken();
+  if (!token) {
+    showToast('Please log in to like a thought.', 'error');
+    openAuthModal('login');
+    return;
+  }
+
+  const likeBtn = cardEl.querySelector('.like-btn');
+  likeBtn.disabled = true;
+
+  try {
+    const res = await fetch(`/api/thoughts/${thoughtId}/like`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+
+    if (res.status === 401) {
+      showToast('Session expired. Please log in again.', 'error');
+      clearAuth();
+      updateAuthUI();
+      openAuthModal('login');
+      return;
+    }
+
+    if (data.success) {
+      const iconEl = likeBtn.querySelector('.like-icon');
+      const labelEl = likeBtn.querySelector('.like-label');
+
+      if (data.liked) {
+        likeBtn.classList.remove('text-gray-400', 'hover:text-red-400');
+        likeBtn.classList.add('text-red-400');
+        iconEl.textContent = '❤️';
+      } else {
+        likeBtn.classList.add('text-gray-400', 'hover:text-red-400');
+        likeBtn.classList.remove('text-red-400');
+        iconEl.textContent = '🤍';
+      }
+
+      labelEl.textContent = data.likeCount >= 50 ? `${data.likeCount}` : (data.liked ? 'Liked' : 'Like');
+    } else {
+      showToast(data.message || 'Failed to update like.', 'error');
+    }
+  } catch (err) {
+    showToast('Network error. Please try again.', 'error');
+  } finally {
+    likeBtn.disabled = false;
+  }
+}
+
+
+const commentsModal = document.getElementById('commentsModal');
+let activeThoughtId = null;
+
+function openCommentsModal(thoughtId, title) {
+  activeThoughtId = thoughtId;
+  document.getElementById('commentsModalTitle').textContent = title;
+  commentsModal.classList.remove('hidden');
+  loadComments(thoughtId);
+
+  const token = getToken();
+  document.getElementById('addCommentForm').classList.toggle('hidden', !token);
+  document.getElementById('commentLoginPrompt').classList.toggle('hidden', !!token);
+}
+
+function closeCommentsModal() {
+  commentsModal.classList.add('hidden');
+  activeThoughtId = null;
+  document.getElementById('commentInput').value = '';
+}
+
+document.getElementById('closeCommentsModal').addEventListener('click', closeCommentsModal);
+commentsModal.addEventListener('click', (e) => { if (e.target === commentsModal) closeCommentsModal(); });
+document.getElementById('commentLoginLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  closeCommentsModal();
+  openAuthModal('login');
+});
+
+async function loadComments(thoughtId) {
+  const list = document.getElementById('commentsList');
+  const emptyMsg = document.getElementById('commentsEmptyMsg');
+  list.innerHTML = '<p class="text-center text-gray-500 text-sm py-6">Loading comments...</p>';
+  emptyMsg.classList.add('hidden');
+
+  try {
+    const res = await fetch(`/api/thoughts/${thoughtId}/comments`);
+    const data = await res.json();
+    list.innerHTML = '';
+
+    document.getElementById('commentsModalCount').textContent =
+      `${data.count} comment${data.count === 1 ? '' : 's'}`;
+
+    if (!data.success || data.count === 0) {
+      emptyMsg.classList.remove('hidden');
+      return;
+    }
+
+    data.data.forEach(c => {
+      const item = document.createElement('div');
+      item.className = 'flex gap-3';
+      item.innerHTML = `
+        <span class="w-9 h-9 rounded-full bg-gold-500/20 border border-gold-500/30 flex items-center justify-center text-gold-400 font-serif font-bold text-xs shrink-0">
+          ${getInitials(c.userName)}
+        </span>
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <p class="text-sm font-medium text-gray-100">${escapeHtmlPublic(c.userName)}</p>
+            <p class="text-xs text-gray-500">${timeAgo(c.createdAt)}</p>
+          </div>
+          <p class="text-sm text-gray-300 mt-0.5">${escapeHtmlPublic(c.text)}</p>
+        </div>
+      `;
+      list.appendChild(item);
+    });
+  } catch (err) {
+    list.innerHTML = '<p class="text-center text-red-400 text-sm py-6">Failed to load comments.</p>';
+  }
+}
+
+document.getElementById('addCommentForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const token = getToken();
+  if (!token || !activeThoughtId) return;
+
+  const input = document.getElementById('commentInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const btn = document.getElementById('commentSubmitBtn');
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`/api/thoughts/${activeThoughtId}/comment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ text })
+    });
+    const data = await res.json();
+
+    if (res.status === 401) {
+      showToast('Session expired. Please log in again.', 'error');
+      clearAuth();
+      updateAuthUI();
+      closeCommentsModal();
+      openAuthModal('login');
+      return;
+    }
+
+    if (data.success) {
+      input.value = '';
+      loadComments(activeThoughtId);
+      const cardEl = document.querySelector(`.comment-btn[data-id="${activeThoughtId}"]`);
+      if (cardEl) cardEl.querySelector('.comment-count-label').textContent = data.commentCount;
+    } else {
+      showToast(data.message || 'Failed to post comment.', 'error');
+    }
+  } catch (err) {
+    showToast('Network error. Please try again.', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+loadCommunityThoughts();
+  </script>
+</body>
+
+</html>

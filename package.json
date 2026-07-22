@@ -1,0 +1,21 @@
+{
+  "name": "sanatan-gyan",
+  "version": "1.0.0",
+  "description": "Sanatan Gyan - A full-stack platform for spiritual wisdom, sharing thoughts, and community building.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.24.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
