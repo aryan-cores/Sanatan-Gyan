@@ -1,0 +1,1115 @@
+/* ================================================================
+   SANATAN GYAN — MOBILE-FIRST RESPONSIVE OVERRIDES
+   mobile.css — loaded after style.css
+   ================================================================ */
+
+/* ────────────────────────────────────────────────────────────────
+   0. CSS CUSTOM PROPERTIES (shared tokens)
+   ──────────────────────────────────────────────────────────────── */
+:root {
+  --gold: #d4a437;
+  --gold-dim: rgba(212, 164, 55, 0.18);
+  --gold-border: rgba(212, 164, 55, 0.22);
+  --dark-bg: #0a0704;
+  --dark-card: rgba(28, 20, 12, 0.92);
+  --nav-h-top: 52px;
+  --nav-h-bottom: 62px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --mob-max: 480px;
+  --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ────────────────────────────────────────────────────────────────
+   1. MOBILE VIEWPORT LOCK (centered shell on large screens)
+   ──────────────────────────────────────────────────────────────── */
+@media (min-width: 768px) {
+  /* On tablet/desktop the fixed chrome (top bar, bottom nav) stays
+     mobile-only, so these are already hidden at 768px+ by style.css. */
+}
+
+/* ────────────────────────────────────────────────────────────────
+   2. TOP NAVIGATION BAR  (≤ 767px)
+      Title left • Book + Bell + Plus right
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Existing #mobileTopBar styles already position it; we refine it */
+  #mobileTopBar {
+    height: var(--nav-h-top);
+    padding: calc(8px + var(--safe-top)) 14px 8px;
+    gap: 0;
+    background: rgba(10, 7, 4, 0.97);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    border-bottom: 1px solid var(--gold-border);
+    box-shadow: 0 1px 12px rgba(0,0,0,0.5);
+  }
+
+  /* Logo group */
+  .mobile-top-bar-logo {
+    flex: 1;
+    min-width: 0;
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-decoration: none;
+  }
+
+  /* Actions row: Book • Bell • Plus */
+  .mobile-top-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  /* Wisdom (Book) icon button */
+  #mobTopWisdomBtn {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    color: var(--gold);
+    background: var(--gold-dim);
+    border: 1px solid var(--gold-border);
+    transition: background var(--transition), transform var(--transition);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  #mobTopWisdomBtn:active { transform: scale(0.92); }
+
+  /* Notification bell */
+  .mobile-top-bar-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 1.0rem;
+    background: var(--gold-dim);
+    border: 1px solid var(--gold-border);
+    transition: background var(--transition), transform var(--transition);
+  }
+  .mobile-top-bar-btn:active { transform: scale(0.92); }
+
+  /* Plus (+) create button */
+  .mobile-top-bar-btn-primary {
+    width: 36px;
+    height: 36px;
+    font-size: 1.3rem;
+    background: linear-gradient(135deg, #d4a437 0%, #ff9d31 100%);
+    color: #0a0704;
+    font-weight: 800;
+    border-color: transparent;
+    box-shadow: 0 2px 10px rgba(212, 164, 55, 0.35);
+  }
+  .mobile-top-bar-btn-primary:active { transform: scale(0.9); }
+
+  /* Wisdom section indicator in top bar — shown when in wisdom view */
+  #mobileTopBar.wisdom-active .mobile-top-bar-logo {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #wisdomBackBtn {
+    display: none; /* shown dynamically */
+    align-items: center;
+    gap: 6px;
+    color: var(--gold);
+    font-size: 0.88rem;
+    font-weight: 600;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+  #wisdomBackBtn svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--gold);
+    stroke-width: 2.2;
+    fill: none;
+  }
+
+  /* ── body spacing from chrome ── */
+  body {
+    padding-top: var(--nav-h-top) !important;
+    padding-bottom: calc(var(--nav-h-bottom) + var(--safe-bottom)) !important;
+  }
+
+  /* ── Desktop header hidden on mobile ── */
+  header {
+    display: none !important;
+  }
+
+  /* ── Sections: no extra top padding on mobile (top bar handles it) ── */
+  #home, #wisdom, #sloka, #community, #feed {
+    padding-top: 0 !important;
+  }
+
+  /* Fix hero section on mobile */
+  #home {
+    min-height: calc(100dvh - var(--nav-h-top) - var(--nav-h-bottom)) !important;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   3. BOTTOM NAVIGATION BAR (≤ 767px)
+      Home • Community • Feed • Chat • Profile — 5 items
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  #mobileBottomNav {
+    height: calc(var(--nav-h-bottom) + var(--safe-bottom));
+    padding: 4px 4px calc(8px + var(--safe-bottom));
+    background: rgba(10, 7, 4, 0.98);
+    border-top: 1px solid var(--gold-border);
+    backdrop-filter: blur(20px) saturate(1.5);
+    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    box-shadow: 0 -1px 16px rgba(0,0,0,0.6);
+    /* 5 equal columns */
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr);
+    align-items: center;
+    overflow: hidden; /* no scroll — 5 items fit perfectly */
+  }
+
+  .mob-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 5px 2px 4px;
+    border-radius: 10px;
+    border: none;
+    background: none;
+    color: #6b7280;
+    cursor: pointer;
+    transition: color var(--transition), transform var(--transition);
+    position: relative;
+    width: 100%;
+  }
+
+  .mob-nav-btn > span:first-child {
+    font-size: 1.25rem;
+    line-height: 1;
+    display: block;
+  }
+
+  .mob-nav-label {
+    font-size: 0.5rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  .mob-nav-btn.active {
+    color: var(--gold);
+  }
+
+  /* Active indicator pill above icon */
+  .mob-nav-btn.active::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #d4a437, #ff9d31);
+    box-shadow: 0 0 8px rgba(212, 164, 55, 0.6);
+  }
+
+  .mob-nav-btn:active {
+    transform: scale(0.9);
+    color: var(--gold);
+  }
+
+  /* Avatar slot for profile tab */
+  .mob-nav-avatar-slot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    border: 1.5px solid transparent;
+    transition: border-color var(--transition);
+  }
+
+  .mob-nav-btn.active .mob-nav-avatar-slot {
+    border-color: var(--gold);
+    box-shadow: 0 0 6px rgba(212, 164, 55, 0.5);
+  }
+
+  /* Unread dot */
+  .mob-nav-unread-dot {
+    position: absolute;
+    top: 4px;
+    right: calc(50% - 16px);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ef4444;
+    border: 1.5px solid var(--dark-bg);
+    box-shadow: 0 0 4px rgba(239, 68, 68, 0.7);
+  }
+
+  /* Notification dropdown → bottom sheet */
+  #notifDropdown {
+    top: auto !important;
+    bottom: calc(var(--nav-h-bottom) + var(--safe-bottom) + 4px);
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 65dvh;
+    border-radius: 18px 18px 0 0;
+    z-index: 116;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   4. WISDOM SECTION — Back button & slide-in panel
+   ──────────────────────────────────────────────────────────────── */
+
+/* Wisdom "view" overlay on mobile */
+@media (max-width: 767px) {
+  #wisdomOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    background: var(--dark-bg);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+  }
+
+  #wisdomOverlay.wisdom-visible {
+    transform: translateX(0);
+  }
+
+  /* Wisdom top bar inside overlay */
+  #wisdomOverlayTopBar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: calc(10px + var(--safe-top)) 14px 10px;
+    background: rgba(10, 7, 4, 0.97);
+    border-bottom: 1px solid var(--gold-border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    flex-shrink: 0;
+    height: var(--nav-h-top);
+    box-sizing: border-box;
+  }
+
+  #wisdomOverlayBackBtn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--gold);
+    font-size: 0.88rem;
+    font-weight: 600;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 2px;
+    border-radius: 8px;
+    transition: opacity var(--transition);
+    flex-shrink: 0;
+  }
+  #wisdomOverlayBackBtn:active { opacity: 0.65; }
+  #wisdomOverlayBackBtn svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--gold);
+    stroke-width: 2.2;
+    fill: none;
+    flex-shrink: 0;
+  }
+
+  #wisdomOverlayTitle {
+    font-family: 'Cinzel', serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--gold);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Wisdom content scrolls inside overlay */
+  #wisdomOverlayContent {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Clone of wisdom section inside overlay is padded correctly */
+  #wisdomOverlayContent #wisdom {
+    display: block !important;
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+  }
+}
+
+/* On desktop: wisdom is a normal in-page section, no overlay */
+@media (min-width: 768px) {
+  #wisdomOverlay {
+    display: none !important;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   5. INSTAGRAM-STYLE REELS FEED (full-screen vertical snap)
+   ──────────────────────────────────────────────────────────────── */
+
+/* Reels container — wraps the snap feed */
+#reelsFeedContainer {
+  position: fixed;
+  inset: 0;
+  z-index: 72;
+  background: #000;
+  display: none; /* shown when reels tab active on mobile */
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#reelsFeedContainer.reels-open {
+  display: flex;
+}
+
+/* Snap scroll wrapper */
+#reelsSnapWrapper {
+  flex: 1;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+#reelsSnapWrapper::-webkit-scrollbar { display: none; }
+
+/* Each reel card */
+.reel-card {
+  width: 100%;
+  height: 100dvh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* The video / image inside */
+.reel-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Dark gradient overlay at bottom */
+.reel-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0,0,0,0.75) 0%,
+    rgba(0,0,0,0.12) 45%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Overlay text — bottom-left */
+.reel-overlay-text {
+  position: absolute;
+  bottom: calc(24px + var(--safe-bottom));
+  left: 16px;
+  right: 72px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.reel-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.reel-author-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  object-fit: cover;
+  background: var(--gold-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--dark-bg);
+  flex-shrink: 0;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+}
+
+.reel-author-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+
+.reel-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.reel-desc {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.85);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Sound badge */
+.reel-sound-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.9);
+  background: rgba(0,0,0,0.45);
+  padding: 3px 8px;
+  border-radius: 20px;
+  margin-top: 6px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: auto;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.reel-sound-badge svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  flex-shrink: 0;
+}
+
+/* Right-side action column */
+.reel-actions {
+  position: absolute;
+  right: 12px;
+  bottom: calc(28px + var(--safe-bottom));
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.reel-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.reel-action-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.reel-action-btn:active .reel-action-icon {
+  transform: scale(0.85);
+  background: rgba(212, 164, 55, 0.35);
+}
+
+.reel-action-count {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+}
+
+/* Like animation */
+@keyframes reelHeartPop {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.5); }
+  60%  { transform: scale(0.88); }
+  100% { transform: scale(1); }
+}
+
+.reel-action-btn.liked .reel-action-icon {
+  animation: reelHeartPop 0.4s cubic-bezier(0.17, 0.89, 0.32, 1.28);
+  background: rgba(239, 68, 68, 0.25);
+}
+
+/* Reels top bar (close / back button) */
+#reelsFeedTopBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: absolute;
+  top: calc(10px + var(--safe-top));
+  left: 0;
+  right: 0;
+  z-index: 4;
+  padding: 0 14px;
+  pointer-events: none;
+}
+
+#reelsFeedCloseBtn {
+  pointer-events: auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  font-size: 1.0rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+#reelsFeedCloseBtn svg {
+  width: 18px; height: 18px;
+  stroke: #fff; fill: none; stroke-width: 2.2;
+}
+
+#reelsFeedLabel {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  pointer-events: none;
+}
+
+/* Mute overlay on tap */
+.reel-mute-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.reel-mute-overlay.show {
+  opacity: 1;
+}
+
+.reel-mute-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  color: #fff;
+  animation: muteIconPop 0.35s ease-out;
+}
+
+@keyframes muteIconPop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  70%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* Loading skeleton for reel */
+.reel-skeleton {
+  width: 100%;
+  height: 100dvh;
+  background: linear-gradient(135deg, #1c140c, #0a0704);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+.reel-skeleton-pulse {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--gold-dim);
+  border: 2px solid var(--gold-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  animation: divinePulse 2s ease-in-out infinite;
+}
+
+/* On desktop: reels overlay is never shown; feed shows grid */
+@media (min-width: 768px) {
+  #reelsFeedContainer { display: none !important; }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   6. MOBILE FEED TAB — Reel Filter Pill opens Reels view
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Feed section already in normal flow; the reel filter pill triggers
+     the fullscreen overlay. No structural change needed here. */
+
+  /* Keep feed section scroll contained */
+  #feed {
+    overflow-x: hidden;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   7. SECTION VISIBILITY — mobile section management
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Sections should be full-width, no horizontal overflow */
+  section {
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Reduce hero section padding on mobile */
+  #home {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-top: 12px !important;
+    padding-bottom: 20px !important;
+  }
+
+  /* Hide desktop footer on mobile */
+  footer {
+    padding-bottom: calc(24px + var(--safe-bottom));
+  }
+
+  /* Banner fix on mobile */
+  #globalBannerWrap {
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+  }
+  #globalBannerWrap.gbw-home {
+    padding: 0 !important;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   8. WISDOM SECTION TABS — horizontal scroll on mobile
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  #wisdomTabs {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 8px;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+  }
+  #wisdomTabs::-webkit-scrollbar { display: none; }
+
+  #wisdomTabs .tab-btn {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    padding: 7px 14px;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   9. GLOBAL MODAL IMPROVEMENTS on mobile
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Modals slide up from bottom instead of centered */
+  .modal-panel {
+    max-height: 92dvh;
+  }
+
+  /* Auth modal — full bottom-sheet on mobile */
+  #authModal > div {
+    border-radius: 24px 24px 0 0 !important;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 90dvh;
+    overflow-y: auto;
+  }
+
+  /* Profile modal */
+  #profileModal > div {
+    border-radius: 24px 24px 0 0 !important;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 95dvh;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   10. DESKTOP — max-width centered shell
+   ──────────────────────────────────────────────────────────────── */
+@media (min-width: 768px) {
+  /* On desktop the whole app renders at full width with sidebar nav */
+  body {
+    /* desktop keeps existing padding */
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   11. SMOOTH SECTION TRANSITIONS
+   ──────────────────────────────────────────────────────────────── */
+section {
+  transition: opacity 0.2s ease;
+}
+
+section.hidden {
+  display: none !important;
+}
+
+/* Fade-in animation */
+@keyframes sgFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: sgFadeIn 0.3s ease-out both;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   12. NO HORIZONTAL OVERFLOW — global safety net
+   ──────────────────────────────────────────────────────────────── */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   13. TOUCH TARGET MINIMUM SIZE
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  button, a {
+    min-height: 36px;
+  }
+  input, select, textarea {
+    font-size: 16px !important; /* Prevent iOS zoom on focus */
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   14. COMMUNITY / FEED MOBILE TWEAKS
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  #communityGrid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .feed-grid {
+    gap: 12px !important;
+  }
+
+  /* Feed filter pills horizontal scroll */
+  .feed-filter-pills {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .feed-filter-pills::-webkit-scrollbar { display: none; }
+  .feed-filter-pill { flex-shrink: 0; }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   15. REEL CARD — empty state
+   ──────────────────────────────────────────────────────────────── */
+.reels-empty-state {
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--gold);
+  background: var(--dark-bg);
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+.reels-empty-state p {
+  font-size: 0.9rem;
+  color: #9ca3af;
+  text-align: center;
+  padding: 0 24px;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   16. FEED — INSTAGRAM-STYLE FULL-WIDTH, EDGE-TO-EDGE POSTS (≤767px)
+   The main feed (not the Explore mosaic grid) becomes a single
+   full-bleed column, matching Instagram's own feed layout.
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Bleed the feed grid out past the section's own side padding */
+  #feedTabContent #feedList.feed-grid {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+    width: calc(100% + 24px);
+    margin-left: -12px;
+    margin-right: -12px;
+  }
+
+  #feedTabContent #feedList.feed-grid .feed-grid-card {
+    width: 100%;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
+    border-bottom: 1px solid rgba(212, 164, 55, 0.12);
+    margin-bottom: 0;
+  }
+
+  #feedTabContent #feedList.feed-grid .feed-grid-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Full-width media — no cropping side gaps, consistent Instagram-like ratio */
+  #feedTabContent #feedList.feed-grid .feed-grid-media {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 5;
+    max-height: 70vh;
+  }
+
+  #feedTabContent #feedList.feed-grid .feed-grid-media img,
+  #feedTabContent #feedList.feed-grid .feed-grid-media video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Keep header/controls readable with normal side padding */
+  #feed .feed-section-header,
+  #feed .feed-controls,
+  #feed #feedLoginPrompt,
+  #feed #exploreTabContent {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   17. POST DETAIL MODAL — smooth scrolling caption/comments (≤767px)
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  #postDetailModal {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  #postDetailModal .modal-panel {
+    max-height: 100dvh;
+    height: 100dvh;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 0 !important;
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: 1fr !important;
+    overflow: hidden;
+  }
+
+  /* Media stays a fixed, sensible height at the top */
+  #postDetailModal .modal-panel > div:first-child {
+    max-height: 42vh !important;
+    flex-shrink: 0;
+  }
+
+  #postDetailModal #pdMediaWrap {
+    max-height: 42vh !important;
+  }
+
+  /* Everything else — caption, like/comment bar, comments, add-comment
+     form — scrolls smoothly together as one column, never clipped */
+  #postDetailModal .modal-panel > div:last-child {
+    max-height: none !important;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #postDetailModal #pdScrollArea {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  #postDetailModal #pdAddCommentForm {
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    background: var(--dark-card);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   18. REEL — dedicated Audio/Mute toggle button on the action rail
+   ──────────────────────────────────────────────────────────────── */
+.reel-action-btn[data-action="mute"] .reel-action-icon {
+  font-size: 1.1rem;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   19. PROFILE — Settings icon relocated to top-right header +
+   in-page Settings view with Back navigation (≤767px and up)
+   ──────────────────────────────────────────────────────────────── */
+#ppSettingsBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold, #d4a437);
+  background: rgba(212, 164, 55, 0.12);
+  border: 1px solid rgba(212, 164, 55, 0.25);
+  cursor: pointer;
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: background 0.2s, transform 0.2s;
+}
+#ppSettingsBtn:active { transform: scale(0.92); }
+#ppSettingsBtn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; }
+
+/* Settings view slides in over the profile overview, in the same frame */
+#ppSettingsView {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: var(--dark-bg, #0a0704);
+  min-height: 100%;
+  flex-direction: column;
+}
+#ppSettingsView.pp-settings-visible {
+  display: flex;
+}
+
+#ppSettingsBackBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--gold, #d4a437);
+  font-size: 0.88rem;
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+#ppSettingsBackBtn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+
+#ppSettingsTopBar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: rgba(10, 7, 4, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(212, 164, 55, 0.12);
+}
+
+#ppSettingsTopBar span {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  color: var(--gold, #d4a437);
+  font-size: 0.95rem;
+}
+
+#ppSettingsBody {
+  padding: 8px 20px 32px;
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Ensure the profile modal can host an absolutely-positioned settings
+   overlay that still scrolls with the page beneath it */
+#publicProfileModal {
+  position: fixed;
+}

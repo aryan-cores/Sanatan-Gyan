@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>सनातन ज्ञान · Sanatan Gyan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Yatra+One&family=Noto+Serif:ital,wght@0,400;0,600;1,400&family=Noto+Serif+Devanagari:wght@400;600;700&family=Noto+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <svg viewBox="0 0 100 100" fill="none">
+        <circle cx="50" cy="50" r="45" stroke="var(--gold)" stroke-width="1.8"/>
+        <circle cx="50" cy="50" r="39" stroke="var(--maroon)" stroke-width="1" opacity="0.4"/>
+        <text x="50%" y="54%" class="brand-om-text" dominant-baseline="middle" text-anchor="middle" font-family="'Noto Serif Devanagari', serif" font-size="44" font-weight="700">ॐ</text>
+      </svg>
+      <div>
+        <div class="brand-text devanagari">सनातन ज्ञान</div>
+        <div class="brand-sub">Sanatan Gyan</div>
+      </div>
+    </div>
+    <nav class="tabs" id="tabNav">
+      <button data-panel="home" class="active">Home</button>
+      <button data-panel="gita">Gita</button>
+      <button data-panel="vedas">Vedas</button>
+      <button data-panel="ramayan">Ramayan</button>
+      <button data-panel="mahabharat">Mahabharat</button>
+      <button data-panel="puranas">Puranas</button>
+      <button data-panel="aarti">Aarti</button>
+      <button data-panel="bhajan">Bhajan</button>
+      <button data-panel="chalisa">Chalisa</button>
+      <button data-panel="glossary">Glossary</button>
+    </nav>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="lang-dropdown" id="langDropdown">
+        <button type="button" class="lang-trigger" id="langTrigger">
+          <span id="langTriggerLabel">English</span><span class="chev">▼</span>
+        </button>
+        <div class="lang-menu" id="langMenu">
+          <button class="lang-btn active" data-lang="en">English<span class="dot"></span></button>
+          <button class="lang-btn" data-lang="hi">हिन्दी<span class="dot"></span></button>
+          <button class="lang-btn" data-lang="sa">संस्कृत<span class="dot"></span></button>
+          <button class="lang-btn" data-lang="mr">मराठी<span class="dot"></span></button>
+          <button class="lang-btn" data-lang="gu">ગુજરાતી<span class="dot"></span></button>
+        </div>
+      </div>
+      <div class="theme-toggle-wrapper">
+        <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+          <span class="knob" id="themeKnob">☀️</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- HOME -->
+  <section class="panel active" id="home">
+    <div class="hero">
+      <svg class="swastika-hero" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="56" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.8"/>
+        <circle cx="60" cy="60" r="48" fill="none" stroke="var(--saffron)" stroke-width="1" opacity="0.3"/>
+        <g class="swastika-main-line" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none">
+          <path d="M 60 28 L 60 92 M 28 60 L 92 60"/>
+          <path d="M 60 28 L 92 28 M 92 60 L 92 92 M 60 92 L 28 92 M 28 60 L 28 28"/>
+        </g>
+        <g fill="var(--saffron)">
+          <circle cx="44" cy="44" r="3.5"/>
+          <circle cx="76" cy="44" r="3.5"/>
+          <circle cx="44" cy="76" r="3.5"/>
+          <circle cx="76" cy="76" r="3.5"/>
+        </g>
+      </svg>
+      <h1>Begin your study of the Sanatan scriptures</h1>
+      <div class="divider"></div>
+      <p class="tagline">Read the Bhagavad Gita, the four Vedas, and the eighteen Puranas — with translations in Hindi, Sanskrit, Marathi and Gujarati, and every passage read aloud for you.</p>
+      <div class="hero-cta">
+        <button class="btn btn-primary" onclick="goTo('gita')">Start with the Gita</button>
+        <button class="btn btn-ghost" onclick="goTo('ramayan')">Read Ramayan</button>
+      </div>
+    </div>
+
+    <div class="section-head"><h2 data-i18n="howToUseTitle">How to use this place</h2></div>
+    <div class="grid">
+      <div class="card">
+        <span class="num">०१</span>
+        <h3 data-i18n="box1Title">Choose a language</h3>
+        <p data-i18n="box1Desc">Switch between English, Hindi, Sanskrit, Marathi and Gujarati at the top of the page. Every verse and summary updates with you.</p>
+      </div>
+      <div class="card">
+        <span class="num">०२</span>
+        <h3 data-i18n="box2Title">Read at your pace</h3>
+        <p data-i18n="box2Desc">Each chapter is broken into short, plain-language summaries first, then the original verses for those who want to go deeper.</p>
+      </div>
+      <div class="card">
+        <span class="num">०३</span>
+        <h3 data-i18n="box3Title">Progress Saving</h3>
+        <p data-i18n="box3Desc">Your reading and audio track progress is auto-saved locally so you can seamlessly start exactly where you left off!</p>
+      </div>
+      <div class="card">
+        <span class="num">०४</span>
+        <h3 data-i18n="box4Title">Listen & Learn</h3>
+        <p data-i18n="box4Desc">Every verse and summary comes with a built-in audio feature to help you master the correct Sanskrit pronunciations effortlessly.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- GITA -->
+  <section class="panel" id="gita">
+    <div class="section-head">
+      <div><span class="eyebrow">श्रीमद्भगवद्गीता</span><h2>Bhagavad Gita</h2></div>
+    </div>
+    <p class="intro-text" data-i18n="gitaIntro"></p>
+    <div class="gita-container">
+      <aside class="gita-sidebar" id="gitaChapterChips"></aside>
+      <div class="gita-main" id="gitaContent"></div>
+    </div>
+  </section>
+
+  <!-- VEDAS -->
+  <section class="panel" id="vedas">
+    <div class="section-head">
+      <div><span class="eyebrow">वेदाः</span><h2>The Four Vedas</h2></div>
+    </div>
+    <p class="intro-text" data-i18n="vedasIntro"></p>
+    <div class="grid" id="vedasGrid"></div>
+  </section>
+
+  <!-- RAMAYAN -->
+  <section class="panel" id="ramayan">
+    <div class="section-head">
+      <div><span class="eyebrow">रामायण</span><h2>Ramayan Reader</h2></div>
+    </div>
+    <div class="ramayan-bookmark-alert" id="ramayanBookmarkAlert">✨ Welcome back! Resumed your reading progress from yesterday.</div>
+    <p class="intro-text" data-i18n="ramayanIntro"></p>
+    
+    <div class="ramayan-container">
+      <aside class="ramayan-sidebar" id="ramayanSidebar"></aside>
+      <div class="ramayan-content-view">
+        <div>
+          <h3 id="ramayanViewTitle" class="devanagari" style="margin-top:0;"></h3>
+          <div id="ramayanViewText" class="ramayan-text devanagari"></div>
+        </div>
+        <div class="ramayan-pagination">
+          <button class="btn btn-ghost" id="ramayanPrevBtn" style="padding:6px 16px;">◀ Prev</button>
+          <span id="ramayanPageIndicator" style="font-weight:600;">Page 1/5</span>
+          <button class="btn btn-ghost" id="ramayanNextBtn" style="padding:6px 16px;">Next ▶</button>
+        </div>
+        <div style="margin-top:16px;" id="ramayanAudioBox"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAHABHARAT -->
+  <section class="panel" id="mahabharat">
+    <div class="hero" style="padding:50px 10px 30px;">
+      <h1>महाभारत · The Mahabharat</h1>
+      <div class="divider"></div>
+      <p class="tagline" data-i18n="mahabharatIntro"></p>
+      <div class="card" style="max-width:500px; margin:20px auto;"><p>Mahabharat content is coming soon with interactive Parvas.</p></div>
+    </div>
+  </section>
+
+  <!-- PURANAS -->
+  <section class="panel" id="puranas">
+    <div class="section-head">
+      <div><span class="eyebrow">पुराणानि</span><h2>The Eighteen Maha Puranas</h2></div>
+    </div>
+    <p class="intro-text" data-i18n="puranasIntro"></p>
+    <div class="grid" id="puranasGrid"></div>
+  </section>
+
+  <!-- AARTI -->
+  <section class="panel" id="aarti">
+    <div class="hero" style="padding:50px 10px 30px;">
+      <h1>आरती · Aarti</h1>
+      <div class="divider"></div>
+      <p class="tagline" data-i18n="aartiIntro"></p>
+      <div class="card" style="max-width:500px; margin:20px auto;"><p>Devotional Aarti collection is syncing shortly.</p></div>
+    </div>
+  </section>
+
+  <!-- BHAJAN -->
+  <section class="panel" id="bhajan">
+    <div class="hero" style="padding:50px 10px 30px;">
+      <h1>भजन · Bhajan</h1>
+      <div class="divider"></div>
+      <p class="tagline" data-i18n="bhajanIntro"></p>
+      <div class="card" style="max-width:500px; margin:20px auto;"><p>Listen and enjoy traditional Bhajans very soon.</p></div>
+    </div>
+  </section>
+
+  <!-- CHALISA -->
+  <section class="panel" id="chalisa">
+    <div class="hero" style="padding:50px 10px 30px;">
+      <h1>आरती · Chatisa</h1>
+      <div class="divider"></div>
+      <p class="tagline" data-i18n="chalisaIntro"></p>
+      <div class="card" style="max-width:500px; margin:20px auto;"><p>Hanuman Chalisa and other hymns loading soon.</p></div>
+    </div>
+  </section>
+
+  <!-- GLOSSARY -->
+  <section class="panel" id="glossary">
+    <div class="section-head">
+      <div><span class="eyebrow">शब्दकोशः</span><h2>Glossary of Key Terms</h2></div>
+    </div>
+    <p class="intro-text" data-i18n="glossaryIntro"></p>
+    <div class="grid" id="glossaryGrid"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-col">
+      <h4 class="devanagari">सनातन ज्ञान</h4>
+      <p>Sanatan Gyan is dedicated to preserving and sharing the timeless wisdom of Sanatan Dharma through authentic scriptures.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Quick Links</h4>
+      <ul id="footerQuickLinks">
+        <li><a href="#" data-panel-link="home">Home</a></li>
+        <li><a href="#" data-panel-link="gita">Gita</a></li>
+        <li><a href="#" data-panel-link="vedas">Vedas</a></li>
+        <li><a href="#" data-panel-link="ramayan">Ramayan</a></li>
+        <li><a href="#" data-panel-link="mahabharat">Mahabharat</a></li>
+        <li><a href="#" data-panel-link="puranas">Puranas</a></li>
+        <li><a href="#" data-panel-link="aarti">Aarti</a></li>
+        <li><a href="#" data-panel-link="bhajan">Bhajan</a></li>
+        <li><a href="#" data-panel-link="chalisa">Chalisa</a></li>
+        <li><a href="#" data-panel-link="glossary">Glossary</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Contact</h4>
+      <p>📧 <a href="mailto:yaransingh4@gmail.com">yaransingh4@gmail.com</a></p>
+      <p>📞 <a href="tel:+916389078735">6389078735</a></p>
+      <p>📸 <a href="https://instagram.com/s_aryan642" target="_blank" style="display: inline-flex; align-items: center; gap: 6px;">@s_aryan642</a></p>
+      <p>🧑‍💻 <a href="https://aryan-cores.github.io/PortFolio/"  target="_blank">About Me</a></p>
+    </div>
+  </div>
+  <div class="footer-divider"></div>
+  <div class="footer-note">
+    <span class="om devanagari">ॐ</span>
+    <span class="shloka devanagari">सर्वे भवन्तु सुखिनः। सर्वे सन्तु निरामयाः।</span>
+    Made with devotion for preserving and spreading the timeless wisdom of Sanatan Dharma.
+  </div>
+</footer>
+<script src="transliterate.js"></script>
+<script src="gita-data.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>

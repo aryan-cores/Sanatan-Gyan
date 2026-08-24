@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sanatan Gyan | Digital Sanctuary for Sacred Knowledge & Community</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Poppins:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            saffron: {
+              50: '#fff8ed', 100: '#ffefd1', 200: '#ffdba3', 300: '#ffc16b',
+              400: '#ff9d31', 500: '#ff7e0a', 600: '#f06200', 700: '#c74a02',
+              800: '#9e3a09', 900: '#7f310c'
+            },
+            gold: {
+              300: '#f2d492', 400: '#e8bd5e', 500: '#d4a437', 600: '#b3862a'
+            },
+            dark: {
+              900: '#0a0704', 800: '#120d08', 700: '#1c140c', 600: '#2a1e12'
+            }
+          },
+          fontFamily: {
+            serif: ['Cinzel', 'Georgia', 'serif'],
+            sans: ['Poppins', 'system-ui', 'sans-serif'],
+            devanagari: ['Noto Sans Devanagari', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="text-gray-200 bg-[#0a0704] antialiased selection:bg-gold-500/30 selection:text-gold-300">
+
+  <!-- ===================== NOTIFICATION DROPDOWN ===================== -->
+  <div id="notifDropdown"
+    class="hidden fixed top-16 right-5 glass-card rounded-2xl w-80 max-h-[420px] shadow-2xl z-[115] border border-gold-500/20 flex flex-col overflow-hidden">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-gold-500/10 shrink-0">
+      <p class="text-sm font-semibold text-gray-100">Notifications</p>
+      <button id="notifMarkAllReadBtn" class="text-xs text-gold-400 hover:text-gold-300 transition-colors">Mark all read</button>
+      <button id="notifCloseBtn" class="text-gray-400 hover:text-gold-400 text-lg leading-none">✕</button>
+    </div>
+    <div id="notifListLoading" class="hidden py-8 text-center text-xs text-gray-500">Loading…</div>
+    <div id="notifListEmpty" class="hidden py-10 text-center text-xs text-gray-500">No notifications yet.</div>
+    <div id="notifList" class="overflow-y-auto flex-1"></div>
+  </div>
+
+  <!-- ===================== PERSISTENT MOBILE TOP BAR ===================== -->
+  <div id="mobileTopBar">
+    <a href="#home" class="mobile-top-bar-logo">
+      <span class="text-xl">🕉️</span>
+      <span class="font-serif tracking-wider font-bold">Sanatan Gyan</span>
+    </a>
+    <div class="mobile-top-bar-actions">
+      <button id="mobTopNotifBtn" class="mobile-top-bar-btn auth-hide" title="Notifications">
+        🔔<span id="mobTopNotifDot" class="hidden mob-nav-unread-dot"></span>
+      </button>
+      <button id="mobTopNewPostBtn" class="mobile-top-bar-btn mobile-top-bar-btn-primary auth-hide" title="New Post">＋</button>
+    </div>
+  </div>
+
+  <!-- ===================== MOBILE BOTTOM NAV ===================== -->
+  <nav id="mobileBottomNav">
+    <button class="mob-nav-btn active" data-nav="home" onclick="window.location.hash='#home'">
+      <span class="text-lg">🏠</span><span class="mob-nav-label">Home</span>
+    </button>
+    <button class="mob-nav-btn" data-nav="wisdom" onclick="window.location.hash='#wisdom'">
+      <span class="text-lg">📖</span><span class="mob-nav-label">Scriptures</span>
+    </button>
+    <button class="mob-nav-btn" data-nav="community" onclick="window.location.hash='#community'">
+      <span class="text-lg">🌐</span><span class="mob-nav-label">Community</span>
+    </button>
+    <button class="mob-nav-btn" data-nav="feed" onclick="window.location.hash='#feed'">
+      <span class="text-lg">📸</span><span class="mob-nav-label">Darshan</span>
+    </button>
+    <button class="mob-nav-btn auth-hide" id="mobChatBtn" onclick="openChatDrawer()">
+      <span class="text-lg">💬</span><span class="mob-nav-label">Chat</span>
+      <span id="mobChatUnreadDot" class="hidden mob-nav-unread-dot"></span>
+    </button>
+    <button class="mob-nav-btn" id="mobProfileBtn" data-nav="profile">
+      <span id="mobProfileAvatarSlot" class="mob-nav-avatar-slot">👤</span><span class="mob-nav-label">Profile</span>
+    </button>
+  </nav>
+
+  <!-- ===================== AUTH MODAL ===================== -->
+  <div id="authModal"
+    class="hidden fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm modal-backdrop">
+    <div class="glass-card modal-panel rounded-2xl sm:rounded-3xl p-6 sm:p-8 w-full max-w-md relative">
+      <button id="closeAuthModal" class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 transition-colors text-xl leading-none">✕</button>
+
+      <!-- Tabs -->
+      <div class="flex gap-2 mb-7 p-1 bg-dark-900/60 rounded-full">
+        <button data-authtab="login" class="auth-tab-btn active flex-1 py-2 rounded-full text-sm font-medium transition-all">Log In</button>
+        <button data-authtab="signup" class="auth-tab-btn flex-1 py-2 rounded-full text-sm font-medium transition-all text-gray-400">Sign Up</button>
+      </div>
+
+      <!-- Login form -->
+      <form id="loginFormAuth" class="space-y-4">
+        <h3 class="font-serif text-xl font-bold gold-text text-center mb-1">Welcome Back</h3>
+        <p class="text-center text-xs text-gray-500 mb-5">Continue your journey of eternal wisdom</p>
+        <input type="email" name="email" required placeholder="Email address"
+          class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" />
+        <input type="password" name="password" required minlength="6" placeholder="Password"
+          class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" />
+        <button type="submit" id="loginSubmitBtn" class="btn-primary w-full py-3 rounded-full shadow-lg text-sm">Log In</button>
+      </form>
+
+      <!-- Signup form -->
+      <form id="signupFormAuth" class="hidden space-y-4">
+        <h3 class="font-serif text-xl font-bold gold-text text-center mb-1">Create Your Account</h3>
+        <p class="text-center text-xs text-gray-500 mb-5">Join a community of wisdom seekers</p>
+        <input type="text" name="name" required minlength="2" placeholder="Full name"
+          class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" />
+        <input type="email" name="email" required placeholder="Email address"
+          class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" />
+        <input type="password" name="password" required minlength="6" placeholder="Password (min. 6 characters)"
+          class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" />
+        <button type="submit" id="signupSubmitBtn" class="btn-primary w-full py-3 rounded-full shadow-lg text-sm">Create Account</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== EDIT PROFILE PICTURE MODAL ===================== -->
+  <div id="editProfileModal"
+    class="hidden fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm modal-backdrop">
+    <div class="glass-card modal-panel rounded-2xl sm:rounded-3xl p-6 sm:p-8 w-full max-w-sm relative text-center">
+      <button id="closeEditProfileModal" class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 transition-colors text-xl">✕</button>
+      <h3 class="font-serif text-xl font-bold gold-text mb-6">🖼️ Update Profile Picture</h3>
+
+      <div class="flex justify-center mb-6">
+        <img id="profilePicPreview" src="" alt="Preview"
+          class="hidden w-32 h-32 rounded-full object-cover border-4 border-gold-500/35 shadow-xl" />
+        <span id="profilePicPreviewInitials"
+          class="w-32 h-32 rounded-full flex items-center justify-center font-serif font-bold text-4xl text-dark-900 border-4 border-gold-500/35 shadow-xl"></span>
+      </div>
+
+      <form id="profilePicForm" class="space-y-4">
+        <input type="file" id="profilePicInput" name="avatar" accept="image/png, image/jpeg, image/webp" required
+          class="w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gold-500/20 file:text-gold-400 hover:file:bg-gold-500/30 file:cursor-pointer cursor-pointer file:transition" />
+        <p class="text-xs text-gray-500">JPG, PNG or WEBP — max 5MB</p>
+        <button type="submit" id="profilePicSubmitBtn" class="btn-primary w-full py-3 rounded-full shadow-lg text-sm">Upload &amp; Save</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== CHANGE PASSWORD MODAL ===================== -->
+  <div id="changePasswordModal"
+    class="hidden fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm modal-backdrop">
+    <div class="glass-card modal-panel rounded-2xl sm:rounded-3xl p-6 sm:p-8 w-full max-w-md relative">
+      <button id="closeChangePasswordModal" class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 transition-colors text-xl">✕</button>
+      <h3 class="font-serif text-xl font-bold gold-text text-center mb-6">🔒 Change Password</h3>
+
+      <form id="changePasswordForm" class="space-y-5">
+        <div>
+          <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-2">Current Password</label>
+          <input type="password" name="currentPassword" required minlength="6" placeholder="Enter current password"
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-2">New Password</label>
+          <input type="password" name="newPassword" required minlength="6" placeholder="At least 6 characters"
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-2">Confirm New Password</label>
+          <input type="password" name="confirmNewPassword" required minlength="6" placeholder="Re-enter new password"
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" />
+        </div>
+        <button type="submit" id="changePasswordSubmitBtn" class="btn-primary w-full py-3 rounded-full shadow-lg text-sm">Update Password</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== COMMENTS MODAL ===================== -->
+  <div id="commentsModal"
+    class="hidden fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm modal-backdrop">
+    <div class="glass-card modal-panel rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-lg max-h-[85vh] flex flex-col relative">
+      <button id="closeCommentsModal" class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 transition-colors text-xl">✕</button>
+      <h3 class="font-serif text-xl font-bold gold-text mb-0.5 pr-8" id="commentsModalTitle">Comments</h3>
+      <p class="text-xs text-gray-500 mb-4" id="commentsModalCount">0 comments</p>
+
+      <div id="commentsList" class="flex-1 overflow-y-auto space-y-4 mb-4 pr-1"></div>
+      <p id="commentsEmptyMsg" class="hidden text-center text-gray-500 text-sm py-6">No comments yet. Be the first to share your thoughts.</p>
+
+      <form id="addCommentForm" class="flex items-end gap-2 pt-4 border-t border-gold-500/15">
+        <textarea id="commentInput" rows="2" maxlength="1000" placeholder="Add a comment..."
+          class="flex-1 bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2 text-sm text-gray-100 glow-input transition resize-none"></textarea>
+        <button type="submit" id="commentSubmitBtn" class="btn-primary px-4 py-2 rounded-full text-sm shrink-0">Post</button>
+      </form>
+      <p id="commentLoginPrompt" class="hidden text-center text-sm text-gray-400 pt-3">
+        <a href="#" id="commentLoginLink" class="text-gold-400 hover:text-gold-300 underline transition-colors">Log in</a>
+        to join the conversation.
+      </p>
+    </div>
+  </div>
+
+  <!-- ===================== PUBLIC PROFILE ===================== -->
+  <div id="publicProfileModal" class="hidden fixed inset-0 z-[112] bg-dark-900 overflow-y-auto">
+    <div class="sticky top-0 z-10 bg-dark-900/90 backdrop-blur-md border-b border-gold-500/12 px-4 py-3 flex items-center gap-3">
+      <button id="closePublicProfile" class="w-8 h-8 rounded-full flex items-center justify-center text-gray-300 hover:text-gold-400 transition-colors text-lg shrink-0">←</button>
+      <p id="ppTopBarName" class="font-semibold text-sm text-gray-100 truncate"></p>
+    </div>
+
+    <div class="max-w-[640px] mx-auto px-4 sm:px-5">
+      <div class="ig-profile-header">
+        <div class="ig-profile-avatar-wrap">
+          <span id="ppAvatar" class="ig-profile-avatar flex items-center justify-center font-serif font-bold text-dark-900 text-3xl bg-cover bg-center"></span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex flex-wrap items-center gap-3 mb-3">
+            <p id="ppName" class="font-semibold text-lg text-gray-100"></p>
+            <div class="flex gap-2 flex-wrap" id="ppActions">
+              <button id="ppFollowBtn" class="btn-ghost px-4 py-1.5 rounded-lg text-sm font-semibold">Follow</button>
+              <button id="ppFriendBtn" class="btn-ghost px-4 py-1.5 rounded-lg text-sm font-semibold text-saffron-400 border-saffron-500/40">Add Friend</button>
+              <button id="ppUnfriendBtn" class="hidden px-4 py-1.5 rounded-lg text-sm font-semibold border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors">Unfriend</button>
+              <button id="ppMessageBtn" class="hidden btn-primary px-4 py-1.5 rounded-lg text-sm font-semibold">Message</button>
+            </div>
+          </div>
+          <div class="ig-profile-stats">
+            <div class="ig-profile-stat"><span id="ppPostCount" class="ig-profile-stat-num">0</span><span class="ig-profile-stat-label">posts</span></div>
+            <button class="ig-profile-stat" id="ppFollowersBtn"><span id="ppFollowerCount" class="ig-profile-stat-num">0</span><span class="ig-profile-stat-label">followers</span></button>
+            <button class="ig-profile-stat" id="ppFollowingBtn"><span id="ppFollowingCount" class="ig-profile-stat-num">0</span><span class="ig-profile-stat-label">following</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ig-profile-tabs">
+        <div class="ig-profile-tab active pp-tab-btn" data-pptab="all">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
+        </div>
+        <div class="ig-profile-tab pp-tab-btn" data-pptab="photo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+        </div>
+        <div class="ig-profile-tab pp-tab-btn" data-pptab="reel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" /></svg>
+        </div>
+        <div class="ig-profile-tab pp-tab-btn hidden" id="ppSavedTabBtn" data-pptab="saved" title="Saved">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+        </div>
+      </div>
+
+      <div id="ppPostsGrid" class="ig-post-grid"></div>
+      <p id="ppPostsEmpty" class="hidden text-center text-gray-500 text-sm py-16">No posts yet.</p>
+
+      <div id="ppSavedSection" class="hidden">
+        <div id="ppSavedPostsGrid" class="ig-post-grid"></div>
+        <div id="ppSavedThoughtsList" class="space-y-3 mt-4"></div>
+        <p id="ppSavedLoading" class="hidden text-center text-gray-500 text-sm py-16">Loading saved items…</p>
+        <p id="ppSavedEmpty" class="hidden text-center text-gray-500 text-sm py-16">Nothing saved yet.</p>
+      </div>
+      <p id="ppPostsLoading" class="text-center text-gray-500 text-sm py-16">Loading profile...</p>
+
+      <div id="ppMoreSettings" class="hidden md:hidden mt-8 mb-6 border-t border-gold-500/12 pt-5">
+        <button id="ppMoreSettingsToggle" type="button" class="w-full flex items-center justify-between text-sm font-semibold text-gold-400 py-2">
+          <span>⚙️ More Settings</span><span id="ppMoreSettingsChevron" class="transition-transform">▾</span>
+        </button>
+        <div id="ppMoreSettingsPanel" class="hidden space-y-1 pt-2">
+          <a href="#wisdom" class="pp-more-link py-2.5 px-1 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors block">📖 Explore Wisdom</a>
+          <a href="#sloka" class="pp-more-link py-2.5 px-1 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors block">🕉️ Daily Sloka</a>
+          <a href="#thoughts" class="pp-more-link py-2.5 px-1 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors block">✍️ Share Thoughts</a>
+          <a href="#join" class="pp-more-link py-2.5 px-1 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors block">🤝 Join Us</a>
+          <button id="ppMoreEditProfileBtn" type="button" class="w-full text-left py-2.5 px-1 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">🖼️ Edit Profile Picture</button>
+          <button id="ppMoreChangePasswordBtn" type="button" class="w-full text-left py-2.5 px-1 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">🔒 Change Password</button>
+          <a id="ppMoreAdminPortalBtn" href="/admin" class="hidden pp-more-link py-2.5 px-1 border-b border-gold-500/8 text-sm text-gold-400 block">🛡️ Admin Portal</a>
+          <button id="ppMoreLogoutBtn" type="button" class="w-full text-left py-2.5 px-1 text-sm text-red-400 hover:bg-red-500/8 transition-colors rounded-lg">🚪 Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== FOLLOWERS / FOLLOWING LIST MODAL ===================== -->
+  <div id="followListModal"
+    class="hidden fixed inset-0 z-[113] flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm modal-backdrop">
+    <div class="glass-card modal-panel rounded-2xl w-full max-w-sm max-h-[70vh] flex flex-col overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-gold-500/10 shrink-0">
+        <p id="followListTitle" class="text-sm font-semibold text-gray-100">Followers</p>
+        <button id="closeFollowListModal" class="text-gray-400 hover:text-gold-400 text-lg leading-none">✕</button>
+      </div>
+      <div id="followListItems" class="overflow-y-auto flex-1 py-1"></div>
+      <p id="followListEmpty" class="hidden text-center text-gray-500 text-sm py-10">Nobody here yet.</p>
+    </div>
+  </div>
+
+  <!-- ===================== PROFILE PHOTO ZOOM VIEWER ===================== -->
+  <div id="profilePhotoZoomModal"
+    class="hidden fixed inset-0 z-[118] flex items-center justify-center px-4 bg-black/85 backdrop-blur-md modal-backdrop">
+    <button id="closeProfilePhotoZoom"
+      class="absolute top-5 right-5 w-10 h-10 rounded-full bg-black/50 hover:bg-black/75 text-gray-100 flex items-center justify-center text-2xl leading-none transition-colors">✕</button>
+    <div class="flex items-center justify-center w-full h-full max-w-lg max-h-[80vh]">
+      <img id="profilePhotoZoomImg"
+        class="hidden max-w-full max-h-full object-contain rounded-full aspect-square shadow-2xl" alt="Profile photo" />
+      <span id="profilePhotoZoomInitials"
+        class="hidden w-64 h-64 max-w-[70vw] max-h-[70vw] aspect-square rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-6xl shadow-2xl"></span>
+    </div>
+  </div>
+
+  <!-- ===================== POST DETAIL MODAL ===================== -->
+  <div id="postDetailModal"
+    class="hidden fixed inset-0 z-[117] flex items-center justify-center px-2 sm:px-4 bg-black/80 backdrop-blur-sm modal-backdrop">
+    <div class="glass-card modal-panel rounded-2xl sm:rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-hidden relative grid md:grid-cols-2">
+      <button id="closePostDetail" class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/50 text-gray-200 hover:text-gold-400 flex items-center justify-center text-lg">✕</button>
+
+      <div class="relative bg-black flex items-center justify-center max-h-[45vh] md:max-h-[92vh] overflow-hidden">
+        <button id="pdPrevBtn" title="Previous post" class="hidden absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/50 hover:bg-black/75 text-gray-100 flex items-center justify-center text-xl transition-colors">‹</button>
+        <button id="pdNextBtn" title="Next post" class="hidden absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/50 hover:bg-black/75 text-gray-100 flex items-center justify-center text-xl transition-colors">›</button>
+        <div id="pdMediaWrap" class="flex items-center justify-center max-h-[45vh] md:max-h-[92vh] overflow-hidden w-full h-full"></div>
+      </div>
+
+      <div class="flex flex-col max-h-[47vh] md:max-h-[92vh]">
+        <div class="flex items-center gap-3 p-4 pr-14 border-b border-gold-500/15">
+          <button id="pdAuthorAvatar" class="w-9 h-9 rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-sm bg-cover bg-center shrink-0"></button>
+          <div class="flex-1 min-w-0">
+            <button id="pdAuthorName" class="text-sm font-medium text-gray-100 hover:text-gold-400 transition-colors truncate block text-left"></button>
+            <p id="pdPostTime" class="text-xs text-gray-500"></p>
+          </div>
+          <button id="pdFollowBtn" class="hidden btn-ghost px-3.5 py-1.5 rounded-full text-xs font-medium shrink-0 whitespace-nowrap"></button>
+          <div class="relative shrink-0">
+            <button id="pdMenuBtn" title="More options" class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gold-400 hover:bg-gold-500/10 transition-colors text-lg leading-none">⋮</button>
+            <div id="pdMenuDropdown" class="hidden absolute right-0 top-9 z-20 w-48 glass-card rounded-xl border border-gold-500/20 shadow-2xl overflow-hidden py-1"></div>
+          </div>
+        </div>
+
+        <p id="pdCaption" class="hidden px-4 pt-3 pb-2 text-sm text-gray-300 leading-relaxed"></p>
+
+        <div class="flex items-center gap-5 px-4 py-3 border-b border-gold-500/15">
+          <button id="pdLikeBtn" class="flex items-center gap-1.5 text-sm transition-colors text-gray-400 hover:text-red-400">
+            <span id="pdLikeIcon">🤍</span>
+            <span id="pdLikeCount" class="text-xs">0</span>
+          </button>
+          <span class="flex items-center gap-1.5 text-sm text-gray-400">
+            💬 <span id="pdCommentCount" class="text-xs">0</span>
+          </span>
+        </div>
+
+        <div id="pdCommentsList" class="flex-1 overflow-y-auto space-y-4 p-4"></div>
+        <p id="pdCommentsEmpty" class="hidden text-center text-gray-500 text-sm py-6">No comments yet.</p>
+
+        <form id="pdAddCommentForm" class="flex items-end gap-2 p-4 border-t border-gold-500/15">
+          <textarea id="pdCommentInput" rows="1" maxlength="500" placeholder="Add a comment..."
+            class="flex-1 bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2 text-sm text-gray-100 glow-input transition resize-none"></textarea>
+          <button type="submit" class="btn-primary px-4 py-2 rounded-full text-sm shrink-0">Post</button>
+        </form>
+        <p id="pdCommentLoginPrompt" class="hidden text-center text-sm text-gray-400 pb-4">
+          <a href="#" id="pdCommentLoginLink" class="text-gold-400 hover:text-gold-300 underline transition-colors">Log in</a>
+          to join the conversation.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== FRIEND REQUEST TOAST ===================== -->
+  <div id="friendReqToast"
+    class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[99] glass-card rounded-2xl px-5 py-4 shadow-2xl border border-gold-500/30 flex items-center gap-4 w-[90vw] max-w-sm">
+    <span class="text-2xl shrink-0">🤝</span>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm text-gray-100 font-medium truncate" id="friendReqToastName">Someone</p>
+      <p class="text-xs text-gray-400">sent you a friend request</p>
+    </div>
+    <div class="flex gap-2 shrink-0">
+      <button id="acceptFriendReqBtn" class="btn-primary px-3 py-1 rounded-full text-xs">Accept</button>
+      <button id="rejectFriendReqBtn" class="px-3 py-1 rounded-full border border-gray-500/40 text-gray-400 text-xs hover:bg-gray-500/10 transition">Reject</button>
+    </div>
+  </div>
+
+  <!-- ===================== TOAST NOTIFICATION ===================== -->
+  <div id="toast" class="toast fixed top-5 right-5 z-[100] translate-x-[150%] opacity-0 max-w-sm pointer-events-none">
+    <div id="toastBox" class="glass-card rounded-xl px-5 py-4 shadow-2xl border-l-4 border-gold-500 flex items-start gap-3">
+      <span id="toastIcon" class="text-xl shrink-0 mt-0.5">✅</span>
+      <div><p id="toastMessage" class="text-sm text-gray-100 leading-snug"></p></div>
+    </div>
+  </div>
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="fixed top-0 w-full z-50 bg-dark-900/95 backdrop-blur-xl border-b border-gold-500/15 transition-all">
+    <div class="max-w-7xl mx-auto px-5 py-3.5 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <a href="#home" class="flex items-center gap-3 shrink-0 focus:outline-none focus:ring-2 focus:ring-gold-500/50 rounded-lg p-1">
+        <span class="text-2xl sm:text-3xl leading-none">🕉️</span>
+        <div class="flex flex-col">
+          <span class="font-serif text-lg sm:text-xl font-bold gold-text tracking-wide">Sanatan Gyan</span>
+          <span class="text-[9px] uppercase tracking-[0.25em] text-gold-500/70 font-semibold -mt-1 hidden sm:block">Knowledge &amp; Community</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav class="hidden md:flex items-center gap-6 text-sm font-medium flex-1 justify-end">
+        <a href="#home" class="nav-link text-gray-300">Home</a>
+        <a href="#about-sanatan" class="nav-link text-gray-300">Explore</a>
+        <a href="#wisdom" class="nav-link text-gray-300">Scriptures</a>
+        <a href="#temple-events" class="nav-link text-gray-300">Temples &amp; Events</a>
+        <a href="#community-discussions" class="nav-link text-gray-300">Community</a>
+        <a href="#feed" class="nav-link text-gray-300">Darshan Feed</a>
+        <a href="#thoughts" class="nav-link text-gray-300">Share</a>
+
+        <a id="adminPortalBtn" href="/admin" class="hidden px-3.5 py-1 rounded-full border border-gold-500/40 text-gold-400 hover:bg-gold-500/10 transition text-xs font-semibold">
+          Admin Portal
+        </a>
+
+        <!-- Auth State Buttons -->
+        <div id="authButtons" class="flex items-center gap-2.5 pl-2 border-l border-gold-500/20">
+          <button id="loginNavBtn" class="btn-ghost px-4 py-1.5 rounded-full text-xs font-semibold">Log In</button>
+          <button id="signupNavBtn" class="btn-primary px-4 py-1.5 rounded-full text-xs font-semibold shadow-md">Sign Up</button>
+        </div>
+
+        <!-- Notification Bell -->
+        <div class="hidden relative" id="notifWrap">
+          <button id="notifBellBtn" class="relative p-2 text-gray-300 hover:text-gold-400 transition-colors" title="Notifications">
+            🔔<span id="notifUnreadBadge" class="hidden absolute top-1 right-1 min-w-[15px] h-[15px] px-1 bg-red-500 rounded-full ring-2 ring-dark-900 text-[9px] leading-[15px] text-white font-bold text-center"></span>
+          </button>
+        </div>
+
+        <!-- Chat Icon -->
+        <button id="chatToggleBtn" class="hidden relative p-2 text-gray-300 hover:text-gold-400 transition-colors" title="Messages">
+          💬<span id="chatUnreadDot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-dark-900"></span>
+        </button>
+
+        <!-- User Menu -->
+        <div id="userMenu" class="hidden items-center gap-2.5 relative pl-2 border-l border-gold-500/20">
+          <button id="userMenuBtn" class="flex items-center gap-2 group focus:outline-none">
+            <span id="userAvatar" class="w-8 h-8 rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-xs overflow-hidden bg-cover bg-center ring-2 ring-gold-500/30 group-hover:ring-gold-500/60 transition-all"></span>
+            <span id="userNameLabel" class="text-gray-200 text-xs font-medium max-w-[85px] truncate group-hover:text-gold-400 transition-colors"></span>
+            <span class="text-gray-500 text-[10px]">▾</span>
+          </button>
+
+          <div id="userDropdown" class="hidden absolute top-11 right-0 glass-card rounded-2xl py-2 w-52 shadow-2xl z-50 border border-gold-500/20">
+            <div class="px-4 py-2 border-b border-gold-500/10 mb-1">
+              <p class="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Signed in as</p>
+              <p id="dropdownUserName" class="text-sm font-medium text-gold-400 truncate"></p>
+            </div>
+            <button id="viewProfileNavBtn" class="w-full text-left px-4 py-2 text-xs font-medium text-gray-200 hover:bg-gold-500/10 hover:text-gold-300 transition-colors flex items-center gap-2">👤 View Profile</button>
+            <button id="editProfileNavBtn" class="w-full text-left px-4 py-2 text-xs font-medium text-gray-200 hover:bg-gold-500/10 hover:text-gold-300 transition-colors flex items-center gap-2">🖼️ Change Avatar</button>
+            <button id="changePasswordNavBtn" class="w-full text-left px-4 py-2 text-xs font-medium text-gray-200 hover:bg-gold-500/10 hover:text-gold-300 transition-colors flex items-center gap-2">🔒 Change Password</button>
+            <div class="my-1 border-t border-gold-500/10"></div>
+            <button id="logoutBtn" class="w-full text-left px-4 py-2 text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2">🚪 Sign Out</button>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Mobile Menu Toggle -->
+      <button id="mobileMenuBtn" class="md:hidden text-gold-400 p-2 text-2xl leading-none focus:outline-none" aria-label="Open Navigation Menu">☰</button>
+    </div>
+
+    <!-- Mobile Drawer Menu -->
+    <div id="mobileMenu" class="hidden md:hidden flex-col gap-1 px-5 pb-5 bg-dark-900/98 border-t border-gold-500/10">
+      <a href="#home" class="py-2.5 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">Home</a>
+      <a href="#about-sanatan" class="py-2.5 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">What is Sanatan Gyan?</a>
+      <a href="#wisdom" class="py-2.5 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">Sacred Scriptures</a>
+      <a href="#temple-events" class="py-2.5 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">Temples &amp; Events</a>
+      <a href="#community-discussions" class="py-2.5 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">Community Forum</a>
+      <a href="#feed" class="py-2.5 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">Darshan Feed</a>
+      <a href="#thoughts" class="py-2.5 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">Share Thoughts</a>
+      <a href="#join" class="py-2.5 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">Join Us</a>
+      <a id="mobileAdminPortalBtn" href="/admin" class="hidden py-2.5 border-b border-gold-500/8 text-sm text-gold-400 font-semibold">Admin Portal</a>
+
+      <div id="mobileAuthButtons" class="flex gap-2 pt-3">
+        <button id="mobileLoginBtn" class="btn-ghost flex-1 px-4 py-2 rounded-full text-xs font-semibold">Log In</button>
+        <button id="mobileSignupBtn" class="btn-primary flex-1 px-4 py-2 rounded-full text-xs font-semibold">Sign Up</button>
+      </div>
+
+      <div id="mobileUserMenu" class="hidden pt-3 space-y-2">
+        <div class="flex items-center gap-3 p-3 glass-card rounded-xl mb-2 border border-gold-500/20">
+          <span id="mobileAvatar" class="w-9 h-9 rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-xs bg-cover bg-center shrink-0"></span>
+          <div class="min-w-0">
+            <p class="text-[10px] text-gray-500">Signed in as</p>
+            <p id="mobileUserNameLabel" class="text-sm font-semibold text-gold-400 truncate"></p>
+          </div>
+        </div>
+        <button id="mobileViewProfileBtn" class="btn-ghost w-full px-4 py-2.5 rounded-xl text-xs text-left">👤 View Profile</button>
+        <button id="mobileEditProfileBtn" class="btn-ghost w-full px-4 py-2.5 rounded-xl text-xs text-left">🖼️ Change Avatar</button>
+        <button id="mobileChangePasswordBtn" class="btn-ghost w-full px-4 py-2.5 rounded-xl text-xs text-left">🔒 Change Password</button>
+        <button id="mobileLogoutBtn" class="w-full px-4 py-2.5 rounded-xl border border-red-500/35 text-red-400 text-xs text-left hover:bg-red-500/10 transition-colors">🚪 Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== GLOBAL DAILY GREETING BANNER ===================== -->
+  <div id="globalBannerAnchor"></div>
+  <div id="globalBannerWrap" class="gbw-page">
+    <div id="dailyGreetingBanner" class="dgb-horizontal">
+      <span id="dgbDayLabel" class="dgb-day-label"></span>
+      <div class="dgb-text-wrap">
+        <p id="dgbMantra" class="dgb-mantra"></p>
+        <p id="dgbSub" class="dgb-sub"></p>
+      </div>
+      <div id="dgbSymbol" class="dgb-symbol" title="Daily deity symbol"></div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       02 — HERO SECTION (SANATAN DIGITAL ECOSYSTEM)
+       ========================================================================= -->
+  <section id="home" class="hero-bg min-h-screen pt-28 pb-20 px-4 sm:px-6 relative overflow-hidden">
+    <div class="hero-overlay-gradient absolute inset-0 pointer-events-none"></div>
+    <div class="absolute top-1/4 left-10 w-96 h-96 bg-saffron-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-10 right-10 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <!-- Pinned Desktop Greeting Card Mount -->
+    <div id="heroBannerSlot" class="hero-banner-slot"></div>
+
+    <div class="hero-inner max-w-6xl relative z-10 mx-auto w-full">
+      <div class="max-w-4xl text-center fade-in mx-auto">
+        
+        <!-- Sacred Eyebrow -->
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card border border-gold-500/30 text-gold-300 text-xs font-semibold mb-6 shadow-sm">
+          <span>🕉️</span>
+          <span>॥ सनातनं जयते • Eternal Truth &amp; Community ॥</span>
+        </div>
+        
+        <!-- Main Cinematic Heading -->
+        <h1 class="font-serif text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight tracking-tight text-white drop-shadow-sm">
+          Discover the <span class="gold-text">Eternal Wisdom</span> of Sanatan Dharma
+        </h1>
+        
+        <!-- Platform Positioning Narrative -->
+        <p class="text-gray-300 text-sm sm:text-base md:text-lg max-w-2xl mx-auto mb-9 leading-relaxed font-normal">
+          Learn from sacred scriptures, discover spiritual media, explore daily temple events, ask questions, and connect with a growing global community of Sanatan seekers.
+        </p>
+
+        <!-- Primary CTA Stack -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+          <a href="#about-sanatan" class="btn-primary w-full sm:w-auto px-8 py-3.5 rounded-full shadow-lg shadow-saffron-500/20 text-sm sm:text-base font-semibold flex items-center justify-center gap-2">
+            <span>✨</span> Start Your Journey
+          </a>
+          <a href="#community-discussions" class="btn-ghost w-full sm:w-auto px-7 py-3.5 rounded-full text-sm sm:text-base font-semibold flex items-center justify-center gap-2">
+            <span>🌐</span> Explore Community
+          </a>
+          <a href="#sloka" class="w-full sm:w-auto px-6 py-3.5 rounded-full border border-gold-500/30 text-gold-300 hover:bg-gold-500/10 text-sm font-semibold transition-all inline-flex items-center justify-center gap-2">
+            <span>🪔</span> Today's Wisdom
+          </a>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════════
+             03 — WHAT IS SANATAN GYAN? (4 CORE PILLARS)
+             ══════════════════════════════════════════════════════════════════ -->
+        <div id="about-sanatan" class="text-left mb-20 scroll-mt-24">
+          <div class="text-center max-w-xl mx-auto mb-10">
+            <p class="text-gold-400 uppercase tracking-[0.28em] text-[11px] font-semibold mb-1">A Living Digital Sanctuary</p>
+            <h2 class="font-serif text-2xl sm:text-3xl font-bold text-white">What is Sanatan Gyan?</h2>
+            <p class="text-xs text-gray-400 mt-2">A dedicated space where timeless wisdom meets an authentic seeker community.</p>
+            <div class="w-16 h-0.5 bg-gradient-to-r from-transparent via-gold-500 to-transparent mx-auto mt-3"></div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <div class="glass-card card-hover rounded-2xl p-6 border border-gold-500/20 flex flex-col justify-between">
+              <div>
+                <div class="w-12 h-12 rounded-xl bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-2xl mb-4 text-gold-400">
+                  📜
+                </div>
+                <h3 class="font-serif text-lg font-bold text-white mb-2">1. Learn</h3>
+                <p class="text-gray-400 text-xs leading-relaxed mb-4">
+                  Explore verified Sanskrit scriptures, word-by-word meanings, Shad Darshana, and timeless teachings.
+                </p>
+              </div>
+              <a href="#wisdom" class="text-xs font-semibold text-gold-400 hover:text-gold-300 flex items-center gap-1.5 pt-3 border-t border-gold-500/10">
+                <span>Explore Scriptures</span> <span>→</span>
+              </a>
+            </div>
+
+            <div class="glass-card card-hover rounded-2xl p-6 border border-gold-500/20 flex flex-col justify-between">
+              <div>
+                <div class="w-12 h-12 rounded-xl bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-2xl mb-4 text-gold-400">
+                  🎥
+                </div>
+                <h3 class="font-serif text-lg font-bold text-white mb-2">2. Discover</h3>
+                <p class="text-gray-400 text-xs leading-relaxed mb-4">
+                  Watch spiritual pravachans, darshan reels, listen to Vedic chants, and explore sacred temple photography.
+                </p>
+              </div>
+              <a href="#feed" class="text-xs font-semibold text-gold-400 hover:text-gold-300 flex items-center gap-1.5 pt-3 border-t border-gold-500/10">
+                <span>Watch &amp; Listen</span> <span>→</span>
+              </a>
+            </div>
+
+            <div class="glass-card card-hover rounded-2xl p-6 border border-gold-500/20 flex flex-col justify-between">
+              <div>
+                <div class="w-12 h-12 rounded-xl bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-2xl mb-4 text-gold-400">
+                  💬
+                </div>
+                <h3 class="font-serif text-lg font-bold text-white mb-2">3. Connect</h3>
+                <p class="text-gray-400 text-xs leading-relaxed mb-4">
+                  Ask thoughtful questions and join respectful discussions with scholars, Pandits, and fellow seekers.
+                </p>
+              </div>
+              <a href="#community-discussions" class="text-xs font-semibold text-gold-400 hover:text-gold-300 flex items-center gap-1.5 pt-3 border-t border-gold-500/10">
+                <span>Ask the Community</span> <span>→</span>
+              </a>
+            </div>
+
+            <div class="glass-card card-hover rounded-2xl p-6 border border-gold-500/20 flex flex-col justify-between">
+              <div>
+                <div class="w-12 h-12 rounded-xl bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-2xl mb-4 text-gold-400">
+                  🛕
+                </div>
+                <h3 class="font-serif text-lg font-bold text-white mb-2">4. Participate</h3>
+                <p class="text-gray-400 text-xs leading-relaxed mb-4">
+                  Stay updated with daily temple schedules, Aarti timings, upcoming festivals, and local satsangs.
+                </p>
+              </div>
+              <a href="#temple-events" class="text-xs font-semibold text-gold-400 hover:text-gold-300 flex items-center gap-1.5 pt-3 border-t border-gold-500/10">
+                <span>View Temple Events</span> <span>→</span>
+              </a>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════════
+             04 — EXPLORE SANATAN GYAN (DOMAIN GRID)
+             ══════════════════════════════════════════════════════════════════ -->
+        <div class="text-left mb-20">
+          <div class="flex items-center justify-between mb-6 pb-2 border-b border-gold-500/20">
+            <div>
+              <p class="text-gold-400 uppercase tracking-[0.25em] text-[11px] font-semibold">Choose Your Path</p>
+              <h2 class="font-serif text-xl sm:text-2xl font-bold text-white">Explore Sanatan Gyan</h2>
+            </div>
+            <span class="text-xs text-gold-500 hidden sm:inline">Platform Categories</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            
+            <a href="../TRAIL 5/index.html#gita" class="glass-card card-hover rounded-xl p-4 text-center border border-gold-500/15 block group">
+              <span class="text-2xl mb-2 block group-hover:scale-110 transition-transform">📖</span>
+              <h4 class="font-serif font-bold text-xs sm:text-sm text-gray-100 group-hover:text-gold-400 transition-colors">Scriptures</h4>
+              <p class="text-[10px] text-gray-400">Gita, Vedas, Upanishads</p>
+            </a>
+
+            <a href="../TRAIL 5/index.html#philosophy" class="glass-card card-hover rounded-xl p-4 text-center border border-gold-500/15 block group">
+              <span class="text-2xl mb-2 block group-hover:scale-110 transition-transform">🪷</span>
+              <h4 class="font-serif font-bold text-xs sm:text-sm text-gray-100 group-hover:text-gold-400 transition-colors">Philosophy</h4>
+              <p class="text-[10px] text-gray-400">Shad Darshana &amp; Vedanta</p>
+            </a>
+
+            <a href="#feed" class="glass-card card-hover rounded-xl p-4 text-center border border-gold-500/15 block group">
+              <span class="text-2xl mb-2 block group-hover:scale-110 transition-transform">🎥</span>
+              <h4 class="font-serif font-bold text-xs sm:text-sm text-gray-100 group-hover:text-gold-400 transition-colors">Videos</h4>
+              <p class="text-[10px] text-gray-400">Pravachans &amp; Reels</p>
+            </a>
+
+            <a href="#feed" class="glass-card card-hover rounded-xl p-4 text-center border border-gold-500/15 block group">
+              <span class="text-2xl mb-2 block group-hover:scale-110 transition-transform">📸</span>
+              <h4 class="font-serif font-bold text-xs sm:text-sm text-gray-100 group-hover:text-gold-400 transition-colors">Photos</h4>
+              <p class="text-[10px] text-gray-400">Temples &amp; Festivities</p>
+            </a>
+
+            <a href="#temple-events" class="glass-card card-hover rounded-xl p-4 text-center border border-gold-500/15 block group">
+              <span class="text-2xl mb-2 block group-hover:scale-110 transition-transform">🛕</span>
+              <h4 class="font-serif font-bold text-xs sm:text-sm text-gray-100 group-hover:text-gold-400 transition-colors">Temples &amp; Events</h4>
+              <p class="text-[10px] text-gray-400">Aarti Timings &amp; Pujas</p>
+            </a>
+
+            <a href="#community-discussions" class="glass-card card-hover rounded-xl p-4 text-center border border-gold-500/15 block group">
+              <span class="text-2xl mb-2 block group-hover:scale-110 transition-transform">💬</span>
+              <h4 class="font-serif font-bold text-xs sm:text-sm text-gray-100 group-hover:text-gold-400 transition-colors">Community</h4>
+              <p class="text-[10px] text-gray-400">Ask &amp; Discuss</p>
+            </a>
+
+            <a href="#sloka" class="glass-card card-hover rounded-xl p-4 text-center border border-gold-500/15 block group">
+              <span class="text-2xl mb-2 block group-hover:scale-110 transition-transform">🕉️</span>
+              <h4 class="font-serif font-bold text-xs sm:text-sm text-gray-100 group-hover:text-gold-400 transition-colors">Daily Wisdom</h4>
+              <p class="text-[10px] text-gray-400">Shlokas &amp; Reflections</p>
+            </a>
+
+            <a href="../TRAIL 5/index.html#vedas" class="glass-card card-hover rounded-xl p-4 text-center border border-gold-500/15 block group">
+              <span class="text-2xl mb-2 block group-hover:scale-110 transition-transform">🎧</span>
+              <h4 class="font-serif font-bold text-xs sm:text-sm text-gray-100 group-hover:text-gold-400 transition-colors">Sacred Audio</h4>
+              <p class="text-[10px] text-gray-400">Mantras &amp; Recitations</p>
+            </a>
+
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════════
+             05 — WHAT'S HAPPENING TODAY? (TEMPLES & EVENTS)
+             ══════════════════════════════════════════════════════════════════ -->
+        <div id="temple-events" class="text-left mb-20 scroll-mt-24">
+          <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-3 border-b border-gold-500/20 gap-3">
+            <div>
+              <p class="text-gold-400 uppercase tracking-[0.25em] text-[11px] font-semibold">Living Temple Updates</p>
+              <h2 class="font-serif text-2xl sm:text-3xl font-bold gold-text">What's Happening Today?</h2>
+            </div>
+            <p class="text-xs text-gray-400 max-w-xs sm:text-right">Aarti timings, special pujas, and live satsang gatherings</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            
+            <div class="glass-card card-hover rounded-2xl p-5 border border-gold-500/20 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <span class="px-2.5 py-0.5 rounded-full bg-saffron-500/15 text-saffron-400 text-[10px] font-semibold border border-saffron-500/30">
+                    Daily Sandhya Aarti
+                  </span>
+                  <span class="text-[11px] text-gray-400">Today • 7:00 PM</span>
+                </div>
+                <div class="flex items-center gap-2 mb-1.5">
+                  <h3 class="font-serif text-base font-bold text-white">Shri Ram Mandir</h3>
+                  <span class="text-[10px] text-gold-400 bg-gold-500/10 px-1.5 py-0.5 rounded border border-gold-500/30">Verified Temple</span>
+                </div>
+                <p class="text-gray-400 text-xs leading-relaxed mb-4">
+                  Evening Sandhya Aarti accompanied by deepotsav and Hanuman Chalisa path.
+                </p>
+              </div>
+              <button type="button" onclick="showToast('Temple schedule saved to your reminders', 'success')" class="text-xs font-semibold text-gold-400 hover:text-gold-300 flex items-center justify-between pt-3 border-t border-gold-500/10 w-full text-left">
+                <span>View Details &amp; Timings</span>
+                <span>→</span>
+              </button>
+            </div>
+
+            <div class="glass-card card-hover rounded-2xl p-5 border border-gold-500/20 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <span class="px-2.5 py-0.5 rounded-full bg-gold-500/15 text-gold-300 text-[10px] font-semibold border border-gold-500/30">
+                    Special Puja
+                  </span>
+                  <span class="text-[11px] text-gray-400">Tomorrow • 6:00 AM</span>
+                </div>
+                <div class="flex items-center gap-2 mb-1.5">
+                  <h3 class="font-serif text-base font-bold text-white">Somnath Mahadev Mandir</h3>
+                  <span class="text-[10px] text-gold-400 bg-gold-500/10 px-1.5 py-0.5 rounded border border-gold-500/30">Verified Temple</span>
+                </div>
+                <p class="text-gray-400 text-xs leading-relaxed mb-4">
+                  Brahma Muhurta Rudrabhishek with Vedic chanting and milk offering ceremony.
+                </p>
+              </div>
+              <button type="button" onclick="showToast('Puja details saved', 'success')" class="text-xs font-semibold text-gold-400 hover:text-gold-300 flex items-center justify-between pt-3 border-t border-gold-500/10 w-full text-left">
+                <span>View Details &amp; Registration</span>
+                <span>→</span>
+              </button>
+            </div>
+
+            <div class="glass-card card-hover rounded-2xl p-5 border border-gold-500/20 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <span class="px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-300 text-[10px] font-semibold border border-blue-500/30">
+                    Community Satsang
+                  </span>
+                  <span class="text-[11px] text-gray-400">Weekly • 5:30 PM</span>
+                </div>
+                <div class="flex items-center gap-2 mb-1.5">
+                  <h3 class="font-serif text-base font-bold text-white">Gita Pravachan Mandal</h3>
+                  <span class="text-[10px] text-gold-400 bg-gold-500/10 px-1.5 py-0.5 rounded border border-gold-500/30">Scholar Led</span>
+                </div>
+                <p class="text-gray-400 text-xs leading-relaxed mb-4">
+                  Interactive discussion on Bhagavad Gita Chapter 3: The Yoga of Selfless Action.
+                </p>
+              </div>
+              <a href="#community-discussions" class="text-xs font-semibold text-gold-400 hover:text-gold-300 flex items-center justify-between pt-3 border-t border-gold-500/10">
+                <span>Join Satsang Discussion</span>
+                <span>→</span>
+              </a>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════════
+             07 — FEATURED SCRIPTURES (HERO DISCOVERY HUB)
+             ══════════════════════════════════════════════════════════════════ -->
+        <div class="text-left mb-20">
+          <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-3 border-b border-gold-500/20 gap-3">
+            <div>
+              <p class="text-gold-400 uppercase tracking-[0.25em] text-[11px] font-semibold">Foundational Wisdom</p>
+              <h2 class="font-serif text-2xl sm:text-3xl font-bold gold-text">Begin With Timeless Scriptures</h2>
+            </div>
+            <p class="text-xs text-gray-400">Verified texts with authentic recitations &amp; meanings</p>
+          </div>
+
+          <!-- Prominent Featured Scripture: Bhagavad Gita -->
+          <div class="glass-card card-hover rounded-3xl p-6 sm:p-8 border border-gold-500/30 mb-6 relative overflow-hidden">
+            <div class="grid md:grid-cols-3 gap-6 items-center">
+              <div class="md:col-span-2">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-saffron-500/20 text-saffron-300 text-xs font-semibold mb-3 border border-saffron-500/30">
+                  <span>✦ Featured Scripture</span>
+                </div>
+                <h3 class="font-serif text-2xl sm:text-3xl font-bold text-white mb-2">Shrimad Bhagavad Gita</h3>
+                <p class="text-gold-400/90 text-xs sm:text-sm font-medium mb-3">18 Chapters • 700 Verses • Sanskrit Chanting &amp; Commentary</p>
+                <p class="text-gray-300 text-xs sm:text-sm leading-relaxed mb-6">
+                  The eternal battlefield dialogue between Bhagwan Shri Krishna and Arjuna on duty (Dharma), action without attachment (Karma Yoga), devotional surrender (Bhakti Yoga), and supreme knowledge (Jnana Yoga).
+                </p>
+                <div class="flex flex-wrap items-center gap-3">
+                  <a href="../TRAIL 5/index.html#gita" class="btn-primary px-6 py-2.5 rounded-full text-xs font-semibold flex items-center gap-2">
+                    <span>📖</span> Explore Full Gita
+                  </a>
+                  <a href="#wisdom" class="btn-ghost px-5 py-2.5 rounded-full text-xs font-semibold">
+                    Read Chapter Overviews
+                  </a>
+                </div>
+              </div>
+              <div class="flex flex-col gap-2.5 border-t md:border-t-0 md:border-l border-gold-500/15 pt-4 md:pt-0 md:pl-6 text-xs text-gray-400">
+                <p class="text-gold-300 font-semibold uppercase tracking-wider text-[10px]">What you will learn:</p>
+                <span class="flex items-center gap-2">✦ The nature of the immortal Self (Atman)</span>
+                <span class="flex items-center gap-2">✦ Overcoming sorrow and mental hesitation</span>
+                <span class="flex items-center gap-2">✦ The art of fearless decision-making</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Secondary Scriptures Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            
+            <a href="../TRAIL 5/index.html#vedas" class="glass-card card-hover rounded-2xl p-5 border border-gold-500/20 group">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-2xl">🪔</span>
+                <span class="text-[10px] text-saffron-300 bg-saffron-500/10 px-2 py-0.5 rounded-full border border-saffron-500/20">Vedic Chants</span>
+              </div>
+              <h4 class="font-serif text-base font-bold text-white group-hover:text-gold-400 transition-colors mb-1">The 4 Vedas</h4>
+              <p class="text-gray-400 text-xs leading-relaxed mb-3">Rigveda, Samaveda, Yajurveda, and Atharvaveda with swara accents.</p>
+              <span class="text-xs font-semibold text-gold-400 flex items-center justify-between pt-2 border-t border-gold-500/10">
+                Explore Vedas →
+              </span>
+            </a>
+
+            <a href="../TRAIL 5/index.html#upanishads" class="glass-card card-hover rounded-2xl p-5 border border-gold-500/20 group">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-2xl">🕉️</span>
+                <span class="text-[10px] text-saffron-300 bg-saffron-500/10 px-2 py-0.5 rounded-full border border-saffron-500/20">Vedanta</span>
+              </div>
+              <h4 class="font-serif text-base font-bold text-white group-hover:text-gold-400 transition-colors mb-1">The Upanishads</h4>
+              <p class="text-gray-400 text-xs leading-relaxed mb-3">108 principal philosophical treatises exploring the non-dual Brahman.</p>
+              <span class="text-xs font-semibold text-gold-400 flex items-center justify-between pt-2 border-t border-gold-500/10">
+                Explore Upanishads →
+              </span>
+            </a>
+
+            <a href="../TRAIL 5/index.html#ramayan" class="glass-card card-hover rounded-2xl p-5 border border-gold-500/20 group">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-2xl">🏹</span>
+                <span class="text-[10px] text-saffron-300 bg-saffron-500/10 px-2 py-0.5 rounded-full border border-saffron-500/20">7 Kandas</span>
+              </div>
+              <h4 class="font-serif text-base font-bold text-white group-hover:text-gold-400 transition-colors mb-1">Shri Ramcharitmanas</h4>
+              <p class="text-gray-400 text-xs leading-relaxed mb-3">The poetic epic of righteousness composed by Goswami Tulsidas.</p>
+              <span class="text-xs font-semibold text-gold-400 flex items-center justify-between pt-2 border-t border-gold-500/10">
+                Read Ramayana →
+              </span>
+            </a>
+
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════════
+             08 — COMMUNITY FORUM (ASK. DISCUSS. LEARN.)
+             ══════════════════════════════════════════════════════════════════ -->
+        <div id="community-discussions" class="text-left mb-20 scroll-mt-24">
+          <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-3 border-b border-gold-500/20 gap-3">
+            <div>
+              <p class="text-gold-400 uppercase tracking-[0.25em] text-[11px] font-semibold">Respectful Dialogues</p>
+              <h2 class="font-serif text-2xl sm:text-3xl font-bold gold-text">Ask. Discuss. Learn.</h2>
+            </div>
+            <a href="#thoughts" class="btn-primary px-5 py-2 rounded-full text-xs font-semibold self-start sm:self-auto">
+              ＋ Ask a Question
+            </a>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            
+            <div class="glass-card card-hover rounded-2xl p-5 border border-gold-500/20 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between text-xs text-gray-400 mb-2">
+                  <span class="text-gold-400 font-medium">Rituals &amp; Traditions</span>
+                  <span>12 replies</span>
+                </div>
+                <h3 class="font-serif text-base font-bold text-white mb-2 leading-snug">
+                  “Why is Ekadashi Vrata observed twice every month in the Vedic calendar?”
+                </h3>
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="text-xs text-gray-300">Answered by:</span>
+                  <span class="text-[10px] text-gold-300 bg-gold-500/10 px-2 py-0.5 rounded-full border border-gold-500/30">Acharya • Verified</span>
+                </div>
+                <p class="text-gray-400 text-xs leading-relaxed mb-4">
+                  Ekadashi aligns with lunar gravitational rhythms, cleansing physiological channels and deepening meditative focus...
+                </p>
+              </div>
+              <a href="#community" class="text-xs font-semibold text-gold-400 hover:text-gold-300 flex items-center justify-between pt-3 border-t border-gold-500/10">
+                <span>View Full Discussion</span> <span>→</span>
+              </a>
+            </div>
+
+            <div class="glass-card card-hover rounded-2xl p-5 border border-gold-500/20 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between text-xs text-gray-400 mb-2">
+                  <span class="text-gold-400 font-medium">Gita Philosophy</span>
+                  <span>8 replies</span>
+                </div>
+                <h3 class="font-serif text-base font-bold text-white mb-2 leading-snug">
+                  “What is the precise distinction between Nishkama Karma and Sannyasa?”
+                </h3>
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="text-xs text-gray-300">Answered by:</span>
+                  <span class="text-[10px] text-gold-300 bg-gold-500/10 px-2 py-0.5 rounded-full border border-gold-500/30">Scholar Contributor</span>
+                </div>
+                <p class="text-gray-400 text-xs leading-relaxed mb-4">
+                  Bhagwan Krishna clarifies in Chapter 5 that renunciation of action's fruit is superior to physical cessation of work...
+                </p>
+              </div>
+              <a href="#community" class="text-xs font-semibold text-gold-400 hover:text-gold-300 flex items-center justify-between pt-3 border-t border-gold-500/10">
+                <span>Join Discussion</span> <span>→</span>
+              </a>
+            </div>
+
+            <div class="glass-card card-hover rounded-2xl p-5 border border-gold-500/20 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between text-xs text-gray-400 mb-2">
+                  <span class="text-gold-400 font-medium">Upanishadic Thought</span>
+                  <span>15 replies</span>
+                </div>
+                <h3 class="font-serif text-base font-bold text-white mb-2 leading-snug">
+                  “How to understand the concept of 'Neti Neti' in everyday contemplation?”
+                </h3>
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="text-xs text-gray-300">Discussion open to all seekers</span>
+                </div>
+                <p class="text-gray-400 text-xs leading-relaxed mb-4">
+                  The Brihadaranyaka Upanishad guides the seeker beyond names and forms to realize pure unconditioned witness consciousness...
+                </p>
+              </div>
+              <a href="#community" class="text-xs font-semibold text-gold-400 hover:text-gold-300 flex items-center justify-between pt-3 border-t border-gold-500/10">
+                <span>Contribute Thoughts</span> <span>→</span>
+              </a>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════════
+             10 — TODAY'S SANATAN PANCHANG & CALENDAR
+             ══════════════════════════════════════════════════════════════════ -->
+        <div class="text-left mb-20">
+          <div class="flex items-center justify-between mb-6 pb-2 border-b border-gold-500/20">
+            <div>
+              <p class="text-gold-400 uppercase tracking-[0.25em] text-[11px] font-semibold">Cosmic Rhythms</p>
+              <h2 class="font-serif text-xl sm:text-2xl font-bold text-white">Today's Sanatan Calendar</h2>
+            </div>
+            <span class="text-xs text-gold-400 font-medium">Daily Almanac</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="glass-card rounded-2xl p-4 border border-gold-500/20 text-center">
+              <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Tithi (तिथि)</span>
+              <p class="font-serif text-base font-bold text-gold-300">Shukla Paksha Dashami</p>
+              <span class="text-[10px] text-gray-500 mt-1 block">Auspicious for study</span>
+            </div>
+            <div class="glass-card rounded-2xl p-4 border border-gold-500/20 text-center">
+              <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Nakshatra (नक्षत्र)</span>
+              <p class="font-serif text-base font-bold text-gold-300">Rohini Nakshatra</p>
+              <span class="text-[10px] text-gray-500 mt-1 block">Creativity &amp; Growth</span>
+            </div>
+            <div class="glass-card rounded-2xl p-4 border border-gold-500/20 text-center">
+              <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Upcoming Parva (पर्व)</span>
+              <p class="font-serif text-base font-bold text-gold-300">Shri Krishna Janmashtami</p>
+              <span class="text-[10px] text-gray-500 mt-1 block">Temple preparations live</span>
+            </div>
+            <div class="glass-card rounded-2xl p-4 border border-gold-500/20 text-center">
+              <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Shubh Muhurat</span>
+              <p class="font-serif text-base font-bold text-gold-300">Abhijit: 11:45 AM</p>
+              <span class="text-[10px] text-gray-500 mt-1 block">Optimal for initiation</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════════
+             DAILY RECOMMENDATION CARDS (POWERED BY APP.JS SEED)
+             ══════════════════════════════════════════════════════════════════ -->
+        <div class="text-left" id="dailyRecSection">
+          <div class="flex items-center justify-between mb-5 pb-2 border-b border-gold-500/15">
+            <div>
+              <p class="text-gold-400 uppercase tracking-[0.25em] text-[10px] font-semibold mb-0.5">Curated Daily</p>
+              <h3 class="font-serif text-lg sm:text-xl font-bold text-white">आज की विशेष सिफारिशें</h3>
+            </div>
+            <span id="dailyRecDate" class="text-xs text-gray-400"></span>
+          </div>
+          
+          <div class="daily-rec-grid" id="dailyRecGrid">
+            <div class="daily-rec-card animate-pulse bg-dark-700/60"></div>
+            <div class="daily-rec-card animate-pulse bg-dark-700/60"></div>
+            <div class="daily-rec-card animate-pulse bg-dark-700/60"></div>
+            <div class="daily-rec-card animate-pulse bg-dark-700/60"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== EXPLORE WISDOM ===================== -->
+  <section id="wisdom" class="py-24 px-6 bg-dark-800 border-t border-gold-500/10">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-14">
+        <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3 font-semibold">Sacred Texts</p>
+        <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text">Explore Wisdom</h2>
+        <div class="flex justify-center mt-5">
+          <button type="button" id="wisdomSharePostBtn" class="share-post-section-btn btn-primary"
+            style="display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:999px; font-size:0.82rem; font-weight:600; cursor:pointer;">
+            <span style="font-size:1.1rem; line-height:1;">＋</span> Share Post / Video
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap justify-center gap-3 mb-10" id="wisdomTabs">
+        <button data-tab="gita" class="tab-btn active px-6 py-2 rounded-full border border-gold-500/35 text-sm">Bhagavad Gita</button>
+        <button data-tab="vedas" class="tab-btn px-6 py-2 rounded-full border border-gold-500/35 text-sm text-gray-300">Vedas</button>
+        <button data-tab="upanishads" class="tab-btn px-6 py-2 rounded-full border border-gold-500/35 text-sm text-gray-300">Upanishads</button>
+        <button data-tab="philosophy" class="tab-btn px-6 py-2 rounded-full border border-gold-500/35 text-sm text-gray-300">Philosophy</button>
+      </div>
+
+      <div id="wisdomContent" class="grid md:grid-cols-2 gap-8 items-center fade-in"></div>
+    </div>
+  </section>
+
+  <!-- ===================== DAILY SLOKA GENERATOR ===================== -->
+  <section id="sloka" class="py-24 px-6 bg-gradient-to-b from-dark-900 to-dark-800 relative border-t border-gold-500/10">
+    <div class="max-w-4xl mx-auto text-center">
+      <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3 font-semibold">Daily Inspiration</p>
+      <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text mb-4">Daily Sloka</h2>
+      <div class="flex justify-center mb-6">
+        <button type="button" id="slokaSharePostBtn" class="share-post-section-btn btn-primary"
+          style="display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:999px; font-size:0.82rem; font-weight:600; cursor:pointer;">
+          <span style="font-size:1.1rem; line-height:1;">＋</span> Share Post / Video
+        </button>
+      </div>
+      <p class="text-gray-400 mb-12 max-w-xl mx-auto text-sm">Receive a verse of timeless spiritual insight for mindful contemplation today.</p>
+
+      <div class="glass-card card-hover rounded-3xl p-8 md:p-12 shadow-2xl text-left border border-gold-500/25">
+        <p id="slokaSanskrit" class="devanagari text-2xl md:text-3xl text-gold-300 leading-loose mb-6 text-center font-medium"></p>
+        <p id="slokaTransliteration" class="italic text-gray-400 text-center mb-6 tracking-wide text-sm"></p>
+        <div class="border-t border-gold-500/15 pt-6 grid md:grid-cols-2 gap-6">
+          <div>
+            <p class="text-gold-500 text-[10px] uppercase tracking-[0.25em] mb-2 font-semibold">English Translation</p>
+            <p id="slokaEnglish" class="text-gray-200 leading-relaxed text-sm"></p>
+          </div>
+          <div>
+            <p class="text-gold-500 text-[10px] uppercase tracking-[0.25em] mb-2 font-semibold">हिंदी भावार्थ</p>
+            <p id="slokaHindi" class="devanagari text-gray-200 leading-relaxed text-sm"></p>
+          </div>
+        </div>
+        <p id="slokaSource" class="text-gold-500/70 text-xs mt-6 text-center tracking-wide font-medium"></p>
+      </div>
+
+      <button id="newSlokaBtn" class="btn-primary mt-8 px-8 py-3.5 rounded-full shadow-lg text-sm font-semibold">
+        ✨ Reveal Another Sloka
+      </button>
+    </div>
+  </section>
+
+  <!-- ===================== COMMUNITY INSIGHTS ===================== -->
+  <section id="community" class="py-16 sm:py-24 px-4 sm:px-6 bg-dark-800 border-t border-gold-500/10">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-12">
+        <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3 font-semibold">Voices of the Sangha</p>
+        <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text">Community Insights</h2>
+        <p class="text-gray-400 mt-4 max-w-2xl mx-auto leading-relaxed text-sm">
+          Reflections, essays, and insights shared by fellow seekers on this timeless path.
+        </p>
+        <div class="flex justify-center mt-5">
+          <button type="button" id="communitySharePostBtn" class="share-post-section-btn btn-primary"
+            style="display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:999px; font-size:0.82rem; font-weight:600; cursor:pointer;">
+            <span style="font-size:1.1rem; line-height:1;">＋</span> Share Post / Video
+          </button>
+        </div>
+      </div>
+
+      <div id="communityGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      <div class="flex justify-center mt-8">
+        <button id="loadMoreThoughtsBtn"
+          class="hidden px-6 py-2.5 rounded-full border border-gold-500/40 text-gold-400 text-sm font-medium hover:bg-gold-500/10 transition-colors duration-200">
+          Load More Thoughts
+        </button>
+      </div>
+      <p id="communityEmptyMsg" class="hidden text-center text-gray-500 py-10">No approved thoughts yet. Be the first to share yours below!</p>
+      <p id="communityLoadingMsg" class="text-center text-gray-500 py-10 flex items-center justify-center gap-2">
+        <span class="inline-block w-4 h-4 border-2 border-gold-500/40 border-t-gold-500 rounded-full animate-spin"></span>
+        Loading community thoughts…
+      </p>
+    </div>
+  </section>
+
+  <!-- ===================== FEED (VICHAR MANTHAN) ===================== -->
+  <section id="feed" class="py-10 sm:py-16 px-3 sm:px-8 bg-gradient-to-b from-dark-900 to-dark-800 w-full border-t border-gold-500/10">
+    <div class="max-w-7xl mx-auto w-full">
+      <div class="feed-section-header">
+        <div class="feed-section-header-left">
+          <p class="feed-section-eyebrow">Visual Darshan &amp; Reels</p>
+          <h2 class="feed-section-title">विचार मंथन</h2>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <button id="mobFeedNotifBtn" title="Notifications" class="mob-feed-notif-btn auth-hide"
+            onclick="document.getElementById('notifBellBtn')?.click()">
+            🔔<span id="mobFeedNotifDot" class="hidden mob-feed-notif-dot"></span>
+          </button>
+          <button id="createPostBtn" class="btn-primary"
+            style="display: none; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; cursor: pointer;">
+            <span style="font-size:1.1rem; line-height:1;">＋</span> Share Post / Video
+          </button>
+        </div>
+      </div>
+
+      <p id="feedLoginPrompt" class="hidden text-center text-gray-500 py-4 glass-card rounded-2xl text-sm mb-4">
+        <a href="#" id="feedLoginLink" class="text-gold-400 hover:text-gold-300 underline transition-colors">Log in</a>
+        to share posts and interact with others.
+      </p>
+
+      <div class="flex items-center gap-2 mb-4 border-b border-gold-500/10">
+        <button type="button" id="feedTopTabBtn" class="feed-top-tab active px-4 py-2 text-sm font-semibold text-gold-400 border-b-2 border-gold-500 transition-colors">Feed</button>
+        <button type="button" id="exploreTopTabBtn" class="feed-top-tab px-4 py-2 text-sm font-semibold text-gray-400 border-b-2 border-transparent hover:text-gold-400 transition-colors">🧭 Explore</button>
+      </div>
+
+      <div id="feedTabContent">
+        <div class="feed-controls">
+          <div class="feed-search-wrap">
+            <span class="search-icon">🔍</span>
+            <input id="feedSearchInput" type="text" placeholder="Search by name or caption…" class="feed-search-input" autocomplete="off" />
+          </div>
+          <div class="feed-filter-pills">
+            <button type="button" data-filter="all" class="feed-filter-tab feed-filter-pill active">All</button>
+            <button type="button" data-filter="photo" class="feed-filter-tab feed-filter-pill">📸 Photos</button>
+            <button type="button" data-filter="reel" class="feed-filter-tab feed-filter-pill">🎬 Video</button>
+          </div>
+        </div>
+
+        <div id="feedList" class="feed-grid"></div>
+        <p id="feedEmptyMsg" class="hidden text-center text-gray-500 py-10">No posts yet. Be the first to share!</p>
+        <p id="feedLoadingMsg" class="text-center text-gray-500 py-10 flex items-center justify-center gap-2">
+          <span class="inline-block w-4 h-4 border-2 border-gold-500/40 border-t-gold-500 rounded-full animate-spin"></span>
+          Loading feed…
+        </p>
+        <button id="loadMorePostsBtn" class="hidden mx-auto mt-6 block btn-ghost px-6 py-2 rounded-full text-sm font-semibold">Load More</button>
+      </div>
+
+      <div id="exploreTabContent" class="hidden">
+        <div class="ig-explore-grid" id="exploreGrid"></div>
+        <p id="exploreEmptyMsg" class="hidden text-center text-gray-500 py-10">No posts to explore yet.</p>
+        <p id="exploreLoadingMsg" class="text-center text-gray-500 py-10 flex items-center justify-center gap-2">
+          <span class="inline-block w-4 h-4 border-2 border-gold-500/40 border-t-gold-500 rounded-full animate-spin"></span>
+          Loading explore…
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CREATE POST MODAL ===================== -->
+  <div id="createPostModal"
+    class="hidden fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm modal-backdrop">
+    <div class="glass-card modal-panel rounded-2xl sm:rounded-3xl p-6 sm:p-8 w-full max-w-md relative">
+      <button id="closeCreatePostModal" class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 transition-colors text-xl">✕</button>
+      <h3 class="font-serif text-xl font-bold gold-text mb-6">📸 Share दिव्य चित्र / ज्ञान प्रवाह</h3>
+
+      <form id="createPostForm" class="space-y-4">
+        <input type="file" id="postMediaInput" name="media" accept="image/*,video/*" required
+          class="w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gold-500/20 file:text-gold-400 hover:file:bg-gold-500/30 file:cursor-pointer cursor-pointer file:transition" />
+        <div id="postMediaPreviewWrap" class="hidden rounded-xl overflow-hidden border border-gold-500/20">
+          <img id="postImagePreview" class="hidden w-full max-h-64 object-cover" />
+          <video id="postVideoPreview" class="hidden w-full max-h-64" controls></video>
+        </div>
+        <p id="postMediaError" class="hidden text-xs text-red-400 bg-red-500/10 rounded-lg px-3 py-2"></p>
+        <textarea name="caption" maxlength="500" rows="3" placeholder="Write a caption…"
+          class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition resize-none"></textarea>
+        <button type="submit" id="createPostSubmitBtn" class="btn-primary w-full py-3 rounded-full shadow-lg text-sm font-semibold">Share Post</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== INSTAGRAM DM PAGE ===================== -->
+  <div id="igDmPage">
+    <div class="ig-dm-sidebar" id="igDmSidebar">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gold-500/12">
+        <div class="flex items-center gap-2">
+          <button id="igDmCloseBtn" class="text-gray-400 hover:text-gold-400 transition-colors text-lg mr-1">←</button>
+          <h3 class="font-serif text-base font-bold gold-text">Messages</h3>
+        </div>
+        <button id="igDmNewBtn" class="text-gray-400 hover:text-gold-400 transition-colors" title="New message">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </button>
+      </div>
+      <div id="igDmConvoList" class="flex-1 overflow-y-auto"></div>
+      <p id="igDmConvoEmpty" class="hidden text-center text-gray-500 text-sm py-10 px-4">
+        No conversations yet.<br /><span class="text-xs text-gray-600">Message from someone's profile.</span>
+      </p>
+    </div>
+
+    <div class="ig-dm-main" id="igDmMain">
+      <div id="igDmEmptyState" class="flex flex-col items-center justify-center flex-1 gap-4 h-full">
+        <div class="w-20 h-20 rounded-full border-2 border-gold-500/30 flex items-center justify-center text-4xl">💬</div>
+        <p class="font-serif text-lg font-bold text-gray-100">Your Messages</p>
+        <p class="text-sm text-gray-500">Send a message to start a chat.</p>
+      </div>
+
+      <div id="igDmThread" class="hidden flex-col h-full">
+        <div class="flex items-center gap-3 px-4 py-3 border-b border-gold-500/12">
+          <button id="igDmBackBtn" class="md:hidden text-gray-400 hover:text-gold-400 text-xl w-8">←</button>
+          <span id="igDmThreadAvatar" class="w-9 h-9 rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-sm bg-cover bg-center shrink-0"></span>
+          <div class="flex-1 min-w-0">
+            <p id="igDmThreadName" class="text-gray-100 font-semibold text-sm truncate"></p>
+            <p id="igDmThreadStatus" class="text-xs text-gray-500">Private conversation</p>
+          </div>
+          <div class="relative shrink-0">
+            <button id="igChatOptionsBtn" class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gold-400 hover:bg-gold-500/10 transition-colors text-lg">⋮</button>
+            <div id="igChatOptionsDropdown" class="hidden absolute right-0 top-9 z-[9999] w-48 glass-card rounded-xl border border-gold-500/20 shadow-2xl overflow-hidden py-1">
+              <button id="igChatDeleteConvoBtn" class="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors">🗑️ Delete Conversation</button>
+              <button id="igChatBlockUserBtn" class="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gold-500/8 hover:text-gold-400 transition-colors">🚫 Block User</button>
+              <button id="igChatUnblockUserBtn" class="hidden w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gold-500/8 hover:text-gold-400 transition-colors">✅ Unblock User</button>
+            </div>
+          </div>
+        </div>
+        <div id="igDmMessagesList" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+        <form id="igDmSendForm" class="flex items-end gap-2 px-4 py-3 border-t border-gold-500/12">
+          <textarea id="igDmInput" rows="1" maxlength="2000" placeholder="Message…"
+            class="flex-1 bg-dark-700/60 border border-gold-500/25 rounded-2xl px-4 py-2.5 text-sm text-gray-100 glow-input transition resize-none"></textarea>
+          <button type="submit" class="btn-primary px-4 py-2.5 rounded-full text-sm shrink-0 flex items-center gap-1.5">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== LEGACY CHAT DRAWER ===================== -->
+  <div id="chatDrawer" class="hidden fixed inset-0 z-[115] flex justify-end">
+    <div id="chatOverlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div id="chatPanel" class="relative w-full sm:w-[420px] h-full bg-dark-800 border-l border-gold-500/18 flex flex-col shadow-2xl">
+      <div id="chatListView" class="flex flex-col h-full">
+        <div class="flex items-center justify-between p-4 border-b border-gold-500/15">
+          <h3 class="font-serif text-lg font-bold gold-text">Messages</h3>
+          <button id="closeChatDrawer" class="text-gray-400 hover:text-gold-400 transition-colors text-xl">✕</button>
+        </div>
+        <div id="conversationsList" class="flex-1 overflow-y-auto"></div>
+        <p id="conversationsEmptyMsg" class="hidden text-center text-gray-500 text-sm py-10 px-4">
+          No conversations yet.<br /><span class="text-xs text-gray-600">Start a chat from someone's profile.</span>
+        </p>
+      </div>
+      <div id="chatThreadView" class="hidden flex-col h-full">
+        <div class="flex items-center gap-3 p-4 border-b border-gold-500/15">
+          <button id="backToConversations" class="text-gray-400 hover:text-gold-400 transition-colors text-xl w-8 text-center">←</button>
+          <span id="chatThreadAvatar" class="w-9 h-9 rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-sm bg-cover bg-center shrink-0"></span>
+          <div class="flex-1 min-w-0">
+            <p id="chatThreadName" class="text-gray-100 font-medium truncate text-sm"></p>
+            <p id="chatThreadStatus" class="text-xs text-gray-500"></p>
+          </div>
+          <button id="closeChatDrawer2" class="text-gray-400 hover:text-gold-400 transition-colors text-xl">✕</button>
+        </div>
+        <div id="chatMessagesList" class="flex-1 overflow-y-auto p-4 space-y-3" style="min-height:0;max-height:calc(100vh - 180px)"></div>
+        <form id="chatSendForm" class="flex items-end gap-2 p-4 border-t border-gold-500/15">
+          <textarea id="chatMessageInput" rows="1" maxlength="2000" placeholder="Type a message…"
+            class="flex-1 bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2 text-sm text-gray-100 glow-input transition resize-none"></textarea>
+          <button type="submit" class="btn-primary px-4 py-2 rounded-full text-sm shrink-0 font-semibold">Send</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== PRESENT YOUR THOUGHT ===================== -->
+  <section id="thoughts" class="py-24 px-6 bg-gradient-to-b from-dark-800 to-dark-900 border-t border-gold-500/10">
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-12">
+        <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3 font-semibold">Your Voice Matters</p>
+        <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text">Present Your Thought</h2>
+        <p class="text-gray-400 mt-4 leading-relaxed text-sm">Share an article, spiritual reflection, or philosophical query with our global community.</p>
+        <div class="flex justify-center mt-5">
+          <button type="button" id="thoughtsSharePostBtn" class="share-post-section-btn btn-primary"
+            style="display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:999px; font-size:0.82rem; font-weight:600; cursor:pointer;">
+            <span style="font-size:1.1rem; line-height:1;">＋</span> Share Post / Video
+          </button>
+        </div>
+      </div>
+
+      <form id="thoughtForm" class="glass-card rounded-3xl p-8 md:p-10 grid md:grid-cols-2 gap-6 border border-gold-500/20">
+        <div class="md:col-span-1">
+          <label class="block text-xs font-semibold text-gold-400 uppercase tracking-wider mb-2">Author Name</label>
+          <input type="text" name="authorName" required minlength="2" maxlength="100"
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" placeholder="Your name" />
+        </div>
+        <div class="md:col-span-1">
+          <label class="block text-xs font-semibold text-gold-400 uppercase tracking-wider mb-2">Email Address</label>
+          <input type="email" name="email" required
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" placeholder="you@example.com" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-semibold text-gold-400 uppercase tracking-wider mb-2">Title</label>
+          <input type="text" name="title" required minlength="3" maxlength="200"
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" placeholder="Title of your thought or article" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-semibold text-gold-400 uppercase tracking-wider mb-2">Category</label>
+          <select name="category" required
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition">
+            <option value="" disabled selected>Select a category</option>
+            <option value="Philosophy">Philosophy</option>
+            <option value="Gita">Gita</option>
+            <option value="History">History</option>
+            <option value="General">General</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-semibold text-gold-400 uppercase tracking-wider mb-2">Your Thought / Article</label>
+          <textarea name="content" required minlength="20" maxlength="10000" rows="6"
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition resize-none" placeholder="Write your reflection here…"></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <button type="submit" id="thoughtSubmitBtn" class="btn-primary w-full py-3.5 rounded-full shadow-lg text-sm font-semibold">Submit Thought</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===================== JOIN / CONTACT FORM ===================== -->
+  <section id="join" class="py-24 px-6 bg-dark-800 border-t border-gold-500/10">
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-12">
+        <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3 font-semibold">Be Part of the Journey</p>
+        <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text">Join Sanatan Gyan</h2>
+        <p class="text-gray-400 mt-4 leading-relaxed text-sm">Whether you wish to study, volunteer, or contribute — we warmly welcome you.</p>
+        <div class="flex justify-center mt-5">
+          <button type="button" id="joinSharePostBtn" class="share-post-section-btn btn-primary"
+            style="display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:999px; font-size:0.82rem; font-weight:600; cursor:pointer;">
+            <span style="font-size:1.1rem; line-height:1;">＋</span> Share Post / Video
+          </button>
+        </div>
+      </div>
+
+      <form id="contactForm" class="glass-card rounded-3xl p-8 md:p-10 grid md:grid-cols-2 gap-6 border border-gold-500/20">
+        <div class="md:col-span-1">
+          <label class="block text-xs font-semibold text-gold-400 uppercase tracking-wider mb-2">Full Name</label>
+          <input type="text" name="name" required minlength="2" maxlength="100"
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" placeholder="Your name" />
+        </div>
+        <div class="md:col-span-1">
+          <label class="block text-xs font-semibold text-gold-400 uppercase tracking-wider mb-2">Email Address</label>
+          <input type="email" name="email" required
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" placeholder="you@example.com" />
+        </div>
+        <div class="md:col-span-1">
+          <label class="block text-xs font-semibold text-gold-400 uppercase tracking-wider mb-2">Phone Number</label>
+          <input type="tel" name="phone" required
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" placeholder="+91 98765 43210" />
+        </div>
+        <div class="md:col-span-1">
+          <label class="block text-xs font-semibold text-gold-400 uppercase tracking-wider mb-2">I want to join as</label>
+          <select name="role" required
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition">
+            <option value="" disabled selected>Select a role</option>
+            <option value="Learner">Learner</option>
+            <option value="Volunteer">Volunteer</option>
+            <option value="Contributor">Contributor</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-semibold text-gold-400 uppercase tracking-wider mb-2">Message</label>
+          <textarea name="message" required minlength="5" maxlength="2000" rows="4"
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition resize-none" placeholder="Tell us why you'd like to join…"></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <button type="submit" id="contactSubmitBtn" class="btn-primary w-full py-3.5 rounded-full shadow-lg text-sm font-semibold">Submit</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="bg-dark-900 border-t border-gold-500/15 py-12 px-6 text-center">
+    <div class="flex items-center justify-center gap-2 mb-2">
+      <span class="text-2xl">🕉️</span>
+      <p class="font-serif text-2xl gold-text font-bold">Sanatan Gyan</p>
+    </div>
+    <p class="text-gray-500 text-xs sm:text-sm">© 2026 Sanatan Gyan. All rights reserved. Timeless wisdom for the modern seeker.</p>
+  </footer>
+
+  <!-- ===================== JAVASCRIPT ===================== -->
+  <script src="app.js"></script>
+</body>
+
+</html>

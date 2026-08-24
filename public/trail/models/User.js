@@ -3,61 +3,38 @@ const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(
   {
-   name: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  username: {
-    type: String,
-    required: true,
-    unique: true, // Ek hi username 2 logo ka nahi ho sakta
-    lowercase: true,
-    trim: true
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true, // Same email se 2 account nahi ban sakte
-    lowercase: true,
-    trim: true
-  },
-  password: {
-    type: String,
-    required: function () {
-      // Agar user Google se login kar raha hai toh password nahi lagega, 
-      // Lekin agar normal username se register karega toh password MANDATORY hai.
-      return !this.googleId;
-    }
-  },
-  googleId: {
-    type: String,
-    sparse: true
-  },
-  avatar: {
-    type: String,
-    default: ''
-  },
-  avatarColor: {
-    type: String,
-    default: function () {
-      const colors = ['#d4a437', '#ff7e0a', '#c74a02', '#e8bd5e', '#b3862a', '#f06200'];
-      return colors[Math.floor(Math.random() * colors.length)];
-    }
-  },
-  profilePicture: {
-    url: { type: String, default: null },
-    publicId: { type: String, default: null }
-  },
-  // 30-day cooldown tracking dates:
-  lastUsernameChange: {
-    type: Date,
-    default: null
-  },
-  lastNameChange: {
-    type: Date,
-    default: null
-  },
+    name: {
+      type: String,
+      required: [true, 'Name is required'],
+      trim: true,
+      minlength: 2,
+      maxlength: 100
+    },
+    email: {
+      type: String,
+      required: [true, 'Email is required'],
+      trim: true,
+      lowercase: true,
+      unique: true,
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please enter a valid email address']
+    },
+    password: {
+      type: String,
+      required: [true, 'Password is required'],
+      minlength: 6,
+      select: false
+    },
+    avatarColor: {
+      type: String,
+      default: function () {
+        const colors = ['#d4a437', '#ff7e0a', '#c74a02', '#e8bd5e', '#b3862a', '#f06200'];
+        return colors[Math.floor(Math.random() * colors.length)];
+      }
+    },
+    profilePicture: {
+      url: { type: String, default: null },
+      publicId: { type: String, default: null }
+    },
     createdAt: {
       type: Date,
       default: Date.now

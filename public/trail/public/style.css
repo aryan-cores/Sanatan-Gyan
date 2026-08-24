@@ -1,0 +1,2196 @@
+/* ── Base ── */
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #0a0704;
+    }
+
+    .font-serif {
+      font-family: 'Cinzel', serif;
+    }
+
+    .devanagari {
+      font-family: 'Noto Sans Devanagari', sans-serif;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #120d08;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(#d4a437, #ff7e0a);
+      border-radius: 4px;
+    }
+
+    /* ── Gold gradient text ── */
+    .gold-text {
+      background: linear-gradient(135deg, #f2d492 0%, #d4a437 50%, #ff9d31 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Hero background ── */
+    .hero-bg {
+      background-image: linear-gradient(rgba(10, 7, 4, 0.72), rgba(10, 7, 4, 0.94)), url('hero.png');
+      background-size: cover;
+      background-position: center;
+    }
+
+    /* ── Premium glassmorphism card ── */
+    .glass-card {
+      background: rgba(28, 20, 12, 0.6);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(212, 164, 55, 0.18);
+      box-shadow: 0 4px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(212, 164, 55, 0.08);
+    }
+
+    /* ── Card hover effect ── */
+    .card-hover {
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.28s ease,
+        border-color 0.28s ease;
+    }
+
+    .card-hover:hover {
+      transform: translateY(-4px) scale(1.012);
+      box-shadow: 0 16px 48px rgba(212, 164, 55, 0.12), 0 4px 16px rgba(0, 0, 0, 0.4);
+      border-color: rgba(212, 164, 55, 0.38);
+    }
+
+    /* ── Tab active state ── */
+    .tab-btn.active {
+      background: linear-gradient(135deg, #d4a437, #ff9d31);
+      color: #0a0704;
+      font-weight: 600;
+    }
+
+    .tab-btn {
+      transition: all 0.22s ease;
+    }
+
+    .tab-btn:not(.active):hover {
+      background: rgba(212, 164, 55, 0.1);
+      border-color: rgba(212, 164, 55, 0.5);
+    }
+
+    /* ── Animations ── */
+    .fade-in {
+      animation: fadeIn 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .scale-in {
+      animation: scaleIn 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.93);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    /* ── Modal backdrop + panel animations ── */
+    .modal-backdrop {
+      animation: backdropIn 0.25s ease;
+      /* Use dvh so the overlay always fills the visible viewport, even
+         when the soft keyboard pushes the layout on iOS/Android. */
+      min-height: 100dvh;
+      /* Allow the flex container itself to scroll on very short viewports
+         (e.g. landscape mobile with keyboard open) rather than clipping. */
+      overflow-y: auto;
+    }
+
+    @keyframes backdropIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .modal-panel {
+      animation: modalPanelIn 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+      /* Panels must never exceed the visible viewport height so inner
+         scrollable areas (comment lists, form fields) remain reachable
+         when the soft keyboard shrinks the available space. */
+      max-height: calc(100dvh - 2rem);
+    }
+
+    @keyframes modalPanelIn {
+      from {
+        opacity: 0;
+        transform: scale(0.92) translateY(16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    /* On mobile, when a soft keyboard appears the bottom-sheet modals
+       (commentsModal, etc.) must not be clipped behind the keyboard.
+       align-items: flex-start + padding-bottom clearance lets the panel
+       scroll into view rather than disappearing off-screen. */
+    @media (max-width: 767px) {
+      .modal-backdrop {
+        align-items: flex-start;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: calc(64px + env(safe-area-inset-bottom));
+      }
+
+      /* Bottom-sheet modals keep items-end on mobile; override above. */
+      #commentsModal {
+        align-items: flex-end;
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+
+      /* Constrain panel height to remaining space above bottom nav. */
+      .modal-panel {
+        max-height: calc(100dvh - 64px - env(safe-area-inset-bottom) - 2rem);
+      }
+
+      /* Bottom-sheet panel: fill up to bottom nav, let inner content scroll. */
+      #commentsModal .modal-panel {
+        max-height: calc(90dvh - 64px - env(safe-area-inset-bottom));
+        overflow-y: auto;
+      }
+    }
+
+    /* ── Broken-image / media fallback placeholder ──
+       Displayed when an <img> fires onerror. Fills the same slot the
+       image would have occupied so the card layout never collapses. */
+    .media-fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+      height: 100%;
+      min-height: 120px;
+      background: linear-gradient(135deg, rgba(28,20,12,0.9), rgba(42,30,18,0.9));
+      border: 1px solid rgba(212,164,55,0.12);
+      border-radius: inherit;
+      color: rgba(212,164,55,0.45);
+      font-size: 1.6rem;
+      pointer-events: none;
+    }
+    .media-fallback span {
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      color: rgba(156,140,120,0.6);
+    }
+
+    /* ── Toast ── */
+    .toast {
+      transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.38s ease;
+    }
+
+    /* ── Chat drawer ── */
+    #chatPanel {
+      transform: translateX(100%);
+      transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #chatDrawer.chat-open #chatPanel {
+      transform: translateX(0);
+    }
+
+    #chatOverlay {
+      opacity: 0;
+      transition: opacity 0.28s ease;
+    }
+
+    #chatDrawer.chat-open #chatOverlay {
+      opacity: 1;
+    }
+
+    /* ── Message bubbles ── */
+    .msg-bubble {
+      max-width: 75%;
+      padding: 0.55rem 1rem;
+      border-radius: 1.1rem;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      animation: bubbleIn 0.22s ease-out;
+    }
+
+    @keyframes bubbleIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.97);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .msg-bubble.mine {
+      margin-left: auto;
+      background: linear-gradient(135deg, #d4a437, #ff9d31);
+      color: #0a0704;
+      border-bottom-right-radius: 0.2rem;
+    }
+
+    .msg-bubble.theirs {
+      margin-right: auto;
+      background: rgba(28, 20, 12, 0.85);
+      border: 1px solid rgba(212, 164, 55, 0.18);
+      color: #e5e7eb;
+      border-bottom-left-radius: 0.2rem;
+    }
+
+    /* ── Feed media ── */
+    .feed-card video,
+    .feed-card img {
+      transition: opacity 0.3s ease;
+    }
+
+    /* ── Inline follow button (feed card) ── */
+    .ig-follow-inline-btn.following {
+      color: #9ca3af !important;
+    }
+
+    .ig-follow-inline-btn.following:hover {
+      color: #d1d5db !important;
+    }
+
+    .ig-follow-inline-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    /* ── Section transition ── */
+    .section-transition {
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    /* ── Conditional count hide ── */
+    .count-zero {
+      display: none !important;
+    }
+
+    /* ── Public profile tab ──
+       Active/inactive visuals now live entirely on .ig-profile-tab (see
+       below) — a soft amber glow instead of a solid block. */
+    .pp-tab-btn {
+      transition: all 0.2s ease;
+    }
+
+    /* ── Feed filter tabs ── */
+    .feed-filter-tab.active {
+      background: linear-gradient(135deg, #d4a437, #ff9d31);
+      color: #0a0704;
+      font-weight: 600;
+      border-color: transparent;
+    }
+
+    .feed-filter-tab {
+      transition: all 0.2s ease;
+    }
+
+    /* ── Input focus glow ── */
+    .glow-input:focus {
+      outline: none;
+      border-color: rgba(212, 164, 55, 0.7);
+      box-shadow: 0 0 0 3px rgba(212, 164, 55, 0.1);
+    }
+
+    /* ── Btn primary ── */
+    .btn-primary {
+      background: linear-gradient(135deg, #ff7e0a, #d4a437);
+      color: #0a0704;
+      font-weight: 600;
+      transition: filter 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      filter: brightness(1.1);
+      transform: scale(1.02);
+      box-shadow: 0 4px 20px rgba(212, 164, 55, 0.3);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* ── Read Book button (Explore Wisdom cards) ── */
+    .read-book-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 28px;
+      padding: 13px 28px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #ff7e0a, #d4a437);
+      color: #0a0704;
+      font-weight: 700;
+      font-size: 0.92rem;
+      letter-spacing: 0.01em;
+      text-decoration: none;
+      box-shadow: 0 4px 20px rgba(212, 164, 55, 0.28);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.25s ease, filter 0.2s ease;
+    }
+
+    .read-book-btn:hover {
+      transform: translateY(-2px) scale(1.02);
+      filter: brightness(1.08);
+      box-shadow: 0 10px 30px rgba(212, 164, 55, 0.4);
+    }
+
+    .read-book-btn:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .read-book-icon {
+      font-size: 1.15rem;
+      line-height: 1;
+    }
+
+    .read-book-arrow {
+      font-size: 1.05rem;
+      transition: transform 0.25s ease;
+    }
+
+    .read-book-btn:hover .read-book-arrow {
+      transform: translateX(5px);
+    }
+
+    /* ── Btn ghost ── */
+    .btn-ghost {
+      border: 1px solid rgba(212, 164, 55, 0.4);
+      color: #e8bd5e;
+      transition: all 0.2s ease;
+    }
+
+    .btn-ghost:hover {
+      background: rgba(212, 164, 55, 0.1);
+      border-color: rgba(212, 164, 55, 0.65);
+    }
+
+    /* ── Nav link ── */
+    .nav-link {
+      position: relative;
+      transition: color 0.2s ease;
+    }
+
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      right: 50%;
+      height: 1.5px;
+      background: linear-gradient(90deg, #d4a437, #ff9d31);
+      transition: left 0.25s ease, right 0.25s ease;
+    }
+
+    .nav-link:hover::after {
+      left: 0;
+      right: 0;
+    }
+
+    .nav-link:hover {
+      color: #e8bd5e;
+    }
+
+    /* ── Like button pulse ── */
+    @keyframes likePulse {
+      0% {
+        transform: scale(1);
+      }
+
+      40% {
+        transform: scale(1.35);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .like-pulse {
+      animation: likePulse 0.35s ease;
+    }
+
+    /* ══════════════════════════════════════════════
+       INSTAGRAM-STYLE FEED
+    ══════════════════════════════════════════════ */
+
+    /* Stories row */
+    .ig-stories-row {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 12px 0 8px;
+      scrollbar-width: none;
+    }
+
+    .ig-stories-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .ig-story-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .ig-story-ring {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      padding: 2.5px;
+      background: linear-gradient(135deg, #ff7e0a, #d4a437, #ff9d31);
+      transition: transform 0.2s ease;
+    }
+
+    .ig-story-ring:hover {
+      transform: scale(1.08);
+    }
+
+    .ig-story-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2.5px solid #0a0704;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Cinzel', serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: #0a0704;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .ig-story-label {
+      font-size: 0.65rem;
+      color: #9ca3af;
+      max-width: 56px;
+      text-align: center;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    /* IG Post card */
+    .ig-post-card {
+      background: rgba(18, 13, 8, 0.85);
+      border: 1px solid rgba(212, 164, 55, 0.12);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1px;
+    }
+
+    .ig-post-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+    }
+
+    .ig-post-media img,
+    .ig-post-media video {
+      width: 100%;
+      max-height: 520px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .ig-action-bar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 14px 4px;
+    }
+
+    .ig-action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 3px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 1.35rem;
+      color: #9ca3af;
+      transition: color 0.18s, transform 0.18s;
+      line-height: 1;
+    }
+
+    .ig-action-btn:hover {
+      color: #e8bd5e;
+      transform: scale(1.1);
+    }
+
+    .ig-action-btn.liked {
+      color: #ef4444;
+    }
+
+    .ig-action-btn.saved {
+      color: #d4a437;
+    }
+
+    .ig-action-btn svg {
+      width: 24px;
+      height: 24px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .ig-action-btn.liked svg.heart-icon {
+      fill: #ef4444;
+      stroke: #ef4444;
+    }
+
+    .ig-action-btn.saved svg.bookmark-icon {
+      fill: #d4a437;
+      stroke: #d4a437;
+    }
+
+    .ig-bookmark-btn {
+      margin-left: auto;
+    }
+
+    .ig-like-count {
+      padding: 0 14px 4px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+
+    .ig-caption {
+      padding: 2px 14px 6px;
+      font-size: 0.82rem;
+      color: #d1d5db;
+      line-height: 1.5;
+    }
+
+    .ig-caption strong {
+      color: #f9fafb;
+      margin-right: 5px;
+    }
+
+    .ig-view-comments {
+      padding: 0 14px 6px;
+      font-size: 0.78rem;
+      color: #6b7280;
+      cursor: pointer;
+      background: none;
+      border: none;
+      display: block;
+      text-align: left;
+    }
+
+    .ig-view-comments:hover {
+      color: #9ca3af;
+    }
+
+    /* ══════════════════════════════════════════════
+       DAILY GREETING BANNER
+    ══════════════════════════════════════════════ */
+    .daily-greeting-banner {
+      position: relative;
+      border-radius: 20px;
+      padding: 18px 20px;
+      background: linear-gradient(135deg, rgba(18, 13, 8, 0.95) 0%, rgba(28, 20, 12, 0.92) 100%);
+      border: 1px solid rgba(212, 164, 55, 0.4);
+      box-shadow:
+        0 0 0 1px rgba(212, 164, 55, 0.08),
+        0 0 28px rgba(212, 164, 55, 0.18),
+        0 0 56px rgba(212, 164, 55, 0.06),
+        inset 0 1px 0 rgba(212, 164, 55, 0.14);
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+
+    .daily-greeting-banner::before {
+      content: '';
+      position: absolute;
+      top: -60%;
+      left: -15%;
+      width: 60%;
+      height: 200%;
+      background: radial-gradient(ellipse at 30% 30%, rgba(212, 164, 55, 0.18), transparent 65%);
+      pointer-events: none;
+    }
+
+    .daily-greeting-banner::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(212, 164, 55, 0.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .dgb-day-label {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(212, 164, 55, 0.75);
+      margin-bottom: 6px;
+    }
+
+    .dgb-mantra {
+      font-family: 'Noto Sans Devanagari', 'Cinzel', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      line-height: 1.35;
+      background: linear-gradient(135deg, #f2d492 0%, #d4a437 45%, #ff9d31 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 0.01em;
+    }
+
+    @media (min-width: 400px) {
+      .dgb-mantra {
+        font-size: 1.4rem;
+      }
+    }
+
+    .dgb-sub {
+      font-size: 0.7rem;
+      color: rgba(156, 163, 175, 0.7);
+      margin-top: 5px;
+      font-style: italic;
+    }
+
+    .dgb-symbol {
+      font-size: 2.8rem;
+      line-height: 1;
+      filter: drop-shadow(0 0 12px rgba(212, 164, 55, 0.55));
+      animation: dgbGlow 3s ease-in-out infinite alternate;
+      flex-shrink: 0;
+    }
+
+    @keyframes dgbGlow {
+      from {
+        filter: drop-shadow(0 0 8px rgba(212, 164, 55, 0.40));
+      }
+
+      to {
+        filter: drop-shadow(0 0 18px rgba(212, 164, 55, 0.75));
+      }
+    }
+
+    /* ══════════════════════════════════════════════
+       FEED HEADER (Vichar Manthan)
+    ══════════════════════════════════════════════ */
+    .feed-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .feed-section-header-left {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .feed-section-eyebrow {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(212, 164, 55, 0.75);
+      margin-bottom: 2px;
+    }
+
+    .feed-section-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #f2d492, #d4a437, #ff9d31);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .feed-new-post-btn {
+      display: none;
+      /* shown via JS auth */
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #ff7e0a, #d4a437);
+      color: #0a0704;
+      font-size: 0.78rem;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 4px 16px rgba(212, 164, 55, 0.25);
+      transition: filter 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .feed-new-post-btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 22px rgba(212, 164, 55, 0.38);
+    }
+
+    .feed-new-post-btn.auth-visible {
+      display: flex;
+    }
+
+    /* Search + filter bar */
+    .feed-controls {
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .feed-search-wrap {
+      position: relative;
+    }
+
+    .feed-search-wrap .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.85rem;
+      color: #6b7280;
+      pointer-events: none;
+    }
+
+    .feed-search-input {
+      width: 100%;
+      background: rgba(28, 20, 12, 0.7);
+      border: 1px solid rgba(212, 164, 55, 0.2);
+      border-radius: 999px;
+      padding: 9px 14px 9px 38px;
+      font-size: 0.82rem;
+      color: #e5e7eb;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .feed-search-input::placeholder {
+      color: #4b5563;
+    }
+
+    .feed-search-input:focus {
+      border-color: rgba(212, 164, 55, 0.55);
+      box-shadow: 0 0 0 3px rgba(212, 164, 55, 0.08);
+    }
+
+    .feed-filter-pills {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .feed-filter-pill {
+      padding: 5px 15px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border: 1px solid rgba(212, 164, 55, 0.22);
+      color: #9ca3af;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .feed-filter-pill:hover {
+      border-color: rgba(212, 164, 55, 0.45);
+      color: #e8bd5e;
+    }
+
+    .feed-filter-pill.active {
+      background: linear-gradient(135deg, #d4a437, #ff9d31);
+      border-color: transparent;
+      color: #0a0704;
+      font-weight: 700;
+      box-shadow: 0 2px 12px rgba(212, 164, 55, 0.28);
+    }
+
+    /* ══════════════════════════════════════════════
+       FEED REDESIGN — masonry grid cards
+    ══════════════════════════════════════════════ */
+    .feed-banner {
+      /* legacy wrapper used for Vichar Manthan label band — keeping for compatibility */
+      position: relative;
+      border-radius: 20px;
+      padding: 20px 22px;
+      background: linear-gradient(135deg, rgba(212, 164, 55, 0.10), rgba(255, 157, 49, 0.05));
+      border: 1px solid rgba(212, 164, 55, 0.28);
+      box-shadow: 0 0 0 1px rgba(212, 164, 55, 0.05), 0 0 32px rgba(212, 164, 55, 0.14);
+      overflow: hidden;
+    }
+
+    .feed-banner::before {
+      content: '';
+      position: absolute;
+      inset: -40% -10%;
+      background: radial-gradient(circle at 30% 20%, rgba(212, 164, 55, 0.20), transparent 60%);
+      pointer-events: none;
+    }
+
+    .feed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .feed-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+    @media (max-width: 445px) {
+      .feed-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      /* Fixed-height media doesn't fit narrow 2-up columns cleanly — use a
+         square aspect ratio instead so cards stay proportional and never overlap */
+      .feed-grid-media {
+        height: auto;
+        aspect-ratio: 1 / 1;
+      }
+
+      /* ── Feed card footer (Vichar Manthan, 2-col mobile grid) ──
+         At ≤445px a single row can't fit avatar + name + follow + like/
+         comment/share without overlapping or clipping. Stack the footer
+         into two clean rows instead: user info on top, actions below —
+         Instagram's own compact card pattern. */
+      .feed-grid-footer {
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        padding: 7px 8px 8px !important;
+        gap: 4px !important;
+      }
+
+      .feed-grid-footer-left {
+        flex: 1 1 100% !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        gap: 6px !important;
+      }
+
+      .feed-grid-footer-left .post-author-avatar {
+        width: 22px !important;
+        height: 22px !important;
+        min-width: 22px !important;
+        font-size: 0.6rem !important;
+      }
+
+      .feed-grid-footer-left .post-author-name {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        font-size: 0.7rem !important;
+        line-height: 1.1;
+      }
+
+      .feed-grid-footer-left .fg-follow-btn {
+        flex-shrink: 0 !important;
+        font-size: 0.6rem !important;
+        padding: 2px 7px !important;
+        margin-left: auto;
+        white-space: nowrap;
+      }
+
+      .feed-grid-footer-right {
+        flex: 1 1 100% !important;
+        width: 100% !important;
+        justify-content: space-between !important;
+        gap: 0 !important;
+        margin-top: 1px;
+        padding-top: 3px;
+        border-top: 1px solid rgba(212, 164, 55, 0.06);
+      }
+
+      .feed-grid-footer-right .ig-action-btn {
+        font-size: 0.7rem !important;
+        gap: 3px !important;
+        padding: 3px 4px !important;
+        display: flex !important;
+        align-items: center !important;
+      }
+
+      .feed-grid-footer-right .heart-icon,
+      .feed-grid-footer-right .bookmark-icon {
+        width: 14px !important;
+        height: 14px !important;
+      }
+
+      .feed-grid-footer-right .post-comment-btn {
+        font-size: 0.72rem !important;
+      }
+
+      .feed-grid-footer-right .fg-share-btn {
+        font-size: 0.75rem !important;
+      }
+    }
+
+  /* Card hover lift effect */
+.feed-grid-card {
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(18, 13, 8, 0.90);
+  border: 1px solid rgba(212, 164, 55, 0.12);
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.feed-grid-card:hover {
+  border-color: rgba(212, 164, 55, 0.45);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(212, 164, 55, 0.2);
+  z-index: 10;
+}
+
+/* Save button top-right positioning */
+.fg-top-save-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;
+  background: rgba(0, 0, 0, 0.60);
+  backdrop-filter: blur(6px);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.fg-top-save-btn:hover {
+  transform: scale(1.1);
+  background: rgba(212, 164, 55, 0.8);
+}
+
+/* Follow button inline styling */
+.fg-follow-btn {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 164, 55, 0.4);
+  color: #d4a437;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.fg-follow-btn.following {
+  border-color: rgba(156, 163, 175, 0.3);
+  color: #9ca3af;
+}
+
+.fg-follow-btn:hover {
+  background: rgba(212, 164, 55, 0.15);
+}
+    .feed-grid-media {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  background: #0a0704;
+}
+
+.feed-grid-media img,
+.feed-grid-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+    .feed-grid-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-size: 0.68rem;
+      background: rgba(0, 0, 0, 0.60);
+      backdrop-filter: blur(4px);
+      border-radius: 999px;
+      padding: 3px 8px;
+      color: #fff;
+    }
+
+    .feed-grid-overlay {
+      position: absolute;
+      inset: auto 0 0 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 22px 10px 9px;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.80), transparent);
+      color: #f3f4f6;
+      font-size: 0.72rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.22s;
+    }
+
+    .feed-grid-card:hover .feed-grid-overlay {
+      opacity: 1;
+    }
+
+    .feed-grid-overlay span {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .feed-grid-overlay .fg-share-btn {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .feed-grid-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 10px 10px;
+      border-top: 1px solid rgba(212, 164, 55, 0.07);
+    }
+
+    .feed-grid-caption {
+      font-size: 0.72rem;
+      color: #9ca3af;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .feed-grid-quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    .feed-grid-quick-actions .ig-action-btn {
+      font-size: 1.05rem;
+      padding: 2px;
+    }
+
+    .feed-grid-quick-actions .ig-action-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .ig-comment-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px 10px;
+      border-top: 1px solid rgba(212, 164, 55, 0.08);
+    }
+
+    .ig-comment-input-row input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: #9ca3af;
+      font-size: 0.8rem;
+    }
+
+    .ig-comment-input-row input::placeholder {
+      color: #4b5563;
+    }
+
+    .ig-post-time {
+      padding: 0 14px 10px;
+      font-size: 0.68rem;
+      color: #4b5563;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ══════════════════════════════════════════════
+       INSTAGRAM-STYLE DM (Full Page)
+    ══════════════════════════════════════════════ */
+    #igDmPage {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 113;
+      background: #0a0704;
+      flex-direction: row;
+    }
+
+    #igDmPage.dm-open {
+      display: flex;
+    }
+
+    .ig-dm-sidebar {
+      width: 340px;
+      min-width: 280px;
+      border-right: 1px solid rgba(212, 164, 55, 0.12);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .ig-dm-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .ig-dm-convo-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .ig-dm-convo-item:hover {
+      background: rgba(212, 164, 55, 0.05);
+    }
+
+    .ig-dm-convo-item.active {
+      background: rgba(212, 164, 55, 0.08);
+    }
+
+    /* DM mobile: sidebar overlaps on <768px */
+    @media (max-width: 767px) {
+      .ig-dm-sidebar {
+        width: 100%;
+        border-right: none;
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 2;
+        background: #0a0704;
+      }
+
+      .ig-dm-sidebar.dm-thread-open {
+        display: none;
+      }
+
+      .ig-dm-main {
+        width: 100%;
+      }
+    }
+
+    /* ══════════════════════════════════════════════
+       INSTAGRAM-STYLE PROFILE
+    ══════════════════════════════════════════════ */
+    .ig-profile-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 40px;
+      padding: 20px 0 24px;
+    }
+
+    @media (max-width: 480px) {
+      .ig-profile-header {
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 0;
+      }
+    }
+
+    .ig-profile-avatar-wrap {
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .ig-profile-avatar {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      border: 3px solid rgba(212, 164, 55, 0.4);
+    }
+
+    @media (min-width: 640px) {
+      .ig-profile-avatar {
+        width: 128px;
+        height: 128px;
+      }
+    }
+
+    .ig-profile-stats {
+      display: flex;
+      gap: 28px;
+      margin: 12px 0;
+    }
+
+    .ig-profile-stat {
+      text-align: center;
+    }
+
+    .ig-profile-stat-num {
+      font-weight: 700;
+      font-size: 1rem;
+      color: #f9fafb;
+      display: block;
+    }
+
+    .ig-profile-stat-label {
+      font-size: 0.72rem;
+      color: #9ca3af;
+    }
+
+    /* Profile grid tab bar — sits directly below the bio, cleanly aligned.
+       Sleek, minimal, evenly-spaced; muted gold inactive icons that light
+       up amber on hover/active, with a soft glow behind the active tab
+       instead of a solid block. */
+    .ig-profile-tabs {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 18px;
+      border-top: 1px solid rgba(212, 175, 55, 0.15);
+      margin-bottom: 0;
+    }
+
+    .ig-profile-tab {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 0;
+      cursor: pointer;
+      border-top: 2px solid transparent;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: rgba(212, 175, 55, 0.4);
+      transition: all 0.18s ease;
+    }
+
+    .ig-profile-tab:hover {
+      color: #fbbf24; /* amber-400 */
+    }
+
+    .ig-profile-tab.active {
+      border-top-color: #f59e0b; /* amber-500 */
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .ig-profile-tab svg {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    /* 3-col grid — balanced gaps, clear separation from the tab bar above */
+    .ig-post-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 1.5rem;
+    }
+
+    .ig-grid-thumb {
+      aspect-ratio: 1;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      background: #1c140c;
+    }
+
+    .ig-grid-thumb img,
+    .ig-grid-thumb video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.22s ease;
+    }
+
+    .ig-grid-thumb:hover img,
+    .ig-grid-thumb:hover video {
+      transform: scale(1.05);
+    }
+
+    .ig-grid-thumb .ig-grid-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.42);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      opacity: 0;
+      transition: opacity 0.2s;
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .ig-grid-thumb:hover .ig-grid-overlay {
+      opacity: 1;
+    }
+
+    .ig-reel-badge {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 4px;
+      padding: 1px 4px;
+      font-size: 0.65rem;
+      color: #fff;
+    }
+
+    /* ══════════════════════════════════════════════
+       HOME DAILY RECOMMENDATIONS
+    ══════════════════════════════════════════════ */
+    .daily-rec-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    @media (min-width: 640px) {
+      .daily-rec-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .daily-rec-card {
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      aspect-ratio: 4/5;
+      background: #1c140c;
+      border: 1px solid rgba(212, 164, 55, 0.12);
+      transition: transform 0.22s, box-shadow 0.22s;
+    }
+
+    .daily-rec-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(212, 164, 55, 0.15);
+    }
+
+    .daily-rec-card img,
+    .daily-rec-card video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .daily-rec-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(10, 7, 4, 0.88) 0%, transparent 55%);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .daily-rec-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(212, 164, 55, 0.18);
+      border: 1px solid rgba(212, 164, 55, 0.35);
+      border-radius: 20px;
+      padding: 2px 8px;
+      font-size: 0.6rem;
+      font-weight: 600;
+      color: #e8bd5e;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 5px;
+      width: fit-content;
+    }
+
+    .daily-rec-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #f9fafb;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .daily-rec-meta {
+      font-size: 0.65rem;
+      color: #9ca3af;
+      margin-top: 3px;
+    }
+
+    /* ══════════════════════════════════════════════
+       EXPLORE GRID (Instagram Explore style)
+    ══════════════════════════════════════════════ */
+    .ig-explore-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+    }
+
+    .ig-explore-item {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      cursor: pointer;
+      background: #1c140c;
+    }
+
+    .ig-explore-item img,
+    .ig-explore-item video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.25s ease;
+    }
+
+    .ig-explore-item:hover img,
+    .ig-explore-item:hover video {
+      transform: scale(1.04);
+    }
+
+    .ig-explore-badge {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      font-size: 0.85rem;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+    }
+
+    .ig-explore-following-badge {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      background: rgba(212, 164, 55, 0.92);
+      color: #1a1410;
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+
+    .ig-explore-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      opacity: 0;
+      transition: opacity 0.18s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .ig-explore-item:hover .ig-explore-overlay {
+      opacity: 1;
+    }
+
+    @media (max-width: 445px) {
+      .ig-explore-grid {
+        gap: 2px;
+      }
+    }
+
+    /* ══════════════════════════════════════════════
+       NOTIFICATIONS
+    ══════════════════════════════════════════════ */
+    .notif-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(212, 164, 55, 0.06);
+      transition: background 0.15s;
+    }
+
+    .notif-item:hover {
+      background: rgba(212, 164, 55, 0.06);
+    }
+
+    .notif-item.unread {
+      background: rgba(212, 164, 55, 0.05);
+    }
+
+    .notif-item.unread::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #d4a437;
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+
+    .notif-item:not(.unread)::before {
+      content: '';
+      width: 7px;
+      flex-shrink: 0;
+    }
+
+    .notif-item-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #1a1410;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .notif-item-text {
+      font-size: 0.8rem;
+      color: #d1d5db;
+      line-height: 1.35;
+    }
+
+    .notif-item-time {
+      font-size: 0.68rem;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    /* ══════════════════════════════════════════════
+       FOLLOW LIST (followers / following modal)
+    ══════════════════════════════════════════════ */
+    .follow-list-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      border-bottom: 1px solid rgba(212, 164, 55, 0.06);
+    }
+
+    .follow-list-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      flex-shrink: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #1a1410;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .follow-list-name {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.85rem;
+      color: #e5e7eb;
+      cursor: pointer;
+      text-align: left;
+      background: none;
+      border: none;
+      padding: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .follow-list-name:hover {
+      color: #d4a437;
+    }
+
+    .follow-list-action-btn {
+      flex-shrink: 0;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #f87171;
+      background: transparent;
+      transition: background 0.15s;
+    }
+
+    .follow-list-action-btn:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    /* ══════════════════════════════════════════════
+       PERSISTENT MOBILE TOP BAR (≤ 445px)
+    ══════════════════════════════════════════════ */
+    #mobileTopBar {
+      display: none;
+    }
+
+    .mob-nav-avatar-slot {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      overflow: hidden;
+      background-size: cover;
+      background-position: center;
+    }
+
+    /* ══════════════════════════════════════════════
+       MOBILE BOTTOM NAV (≤ 445px)
+    ══════════════════════════════════════════════ */
+    #mobileBottomNav {
+      display: none;
+    }
+
+    #notifBellBtn {
+      position: relative;
+    }
+
+    #mobChatBtn {
+      position: relative;
+    }
+
+    .mob-feed-notif-btn {
+      display: none;
+      position: relative;
+      font-size: 1.1rem;
+      width: 30px;
+      height: 30px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: rgba(212, 164, 55, 0.08);
+      border: 1px solid rgba(212, 164, 55, 0.2);
+      color: #d4a437;
+    }
+
+    .auth-hide {
+      display: none !important;
+    }
+
+    .mob-nav-unread-dot {
+      position: absolute;
+      top: 2px;
+      right: 10px;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #ef4444;
+      border: 2px solid rgba(10, 7, 4, 0.97);
+    }
+
+    .mob-feed-notif-dot {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: #ef4444;
+      border: 2px solid #0a0704;
+    }
+
+    @media (max-width: 767px) {
+      .mob-feed-notif-btn {
+        display: none !important;
+      }
+
+      /* replaced by persistent top bar */
+      #mobileTopBar {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 55;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(10, 7, 4, 0.97);
+        border-bottom: 1px solid rgba(212, 164, 55, 0.15);
+        backdrop-filter: blur(12px);
+        padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+      }
+
+      .mobile-top-bar-logo {
+        font-family: 'Playfair Display', serif;
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #d4a437;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+      }
+
+      .mobile-top-bar-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .mobile-top-bar-btn {
+        position: relative;
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        color: #d4a437;
+        background: rgba(212, 164, 55, 0.08);
+        border: 1px solid rgba(212, 164, 55, 0.2);
+      }
+
+      .mobile-top-bar-btn-primary {
+        background: linear-gradient(135deg, #d4a437, #ff9d31);
+        color: #0a0704;
+        font-weight: 700;
+        font-size: 1.2rem;
+        border-color: transparent;
+      }
+
+      #createPostBtn {
+        display: none !important;
+      }
+
+      /* replaced by persistent top bar's + button */
+      #mobileBottomNav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 60;
+        background: rgba(10, 7, 4, 0.97);
+        border-top: 1px solid rgba(212, 164, 55, 0.15);
+        backdrop-filter: blur(12px);
+        padding: 6px 2px calc(6px + env(safe-area-inset-bottom));
+        align-items: center;
+        justify-content: space-around;
+        gap: 2px;
+        /* Safety net for very narrow devices (≤360px) where 7 items can't
+           all fit at comfortable tap-target size: scroll horizontally
+           instead of squishing, overlapping, or clipping any item. */
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+
+      #mobileBottomNav::-webkit-scrollbar {
+        display: none;
+      }
+
+      .mob-nav-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex-shrink: 0;
+        gap: 2px;
+        font-size: 1.15rem;
+        color: #6b7280;
+        padding: 4px 6px;
+        border-radius: 10px;
+        transition: color 0.18s;
+        background: none;
+        border: none;
+        cursor: pointer;
+      }
+
+      .mob-nav-btn.active,
+      .mob-nav-btn:hover {
+        color: #d4a437;
+      }
+
+      .mob-nav-label {
+        font-size: 0.52rem;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+
+      /* Push page content below the fixed top bar, and above the fixed bottom nav */
+      body {
+        padding-bottom: 64px;
+        padding-top: 56px;
+      }
+
+      header {
+        display: none !important;
+      }
+
+      /* Notification dropdown becomes a full bottom-sheet on mobile,
+         since the header (and the bell button inside it) is hidden here —
+         it's opened instead from the mobile bottom nav's Alerts button.
+         Sits above #mobileBottomNav (z-60) with enough clearance so the
+         bottom-nav never overlaps it, even on devices with a home-indicator. */
+      #notifDropdown {
+        top: auto;
+        bottom: calc(64px + env(safe-area-inset-bottom));
+        left: 0;
+        right: 0;
+        width: 100%;
+        max-height: calc(70dvh - env(safe-area-inset-bottom));
+        border-radius: 18px 18px 0 0;
+        z-index: 115;
+      }
+    }
+    /* ══════════════════════════════════════════════════════════════════
+       GLOBAL DAILY GREETING BANNER
+       #globalBannerWrap sits directly below the fixed navbar, in normal
+       document flow (block-level) on every route. It reserves space equal
+       to the navbar height (padding-top) and adds breathing room below
+       (padding-bottom) so page headings are always pushed down and never
+       clip behind the banner or the fixed navbar.
+       ══════════════════════════════════════════════════════════════════ */
+    #globalBannerWrap {
+      width: 100%;
+      position: relative;
+      z-index: 20; /* below navbar (z-50) but above page content */
+      padding-top: 72px;      /* clears the fixed navbar */
+      padding-bottom: 1.5rem; /* pushes following headings down, no overlap */
+      background: #0a0704;
+      box-sizing: border-box;
+    }
+
+    /* Home page: banner is mounted directly inside the hero flex row (see
+       #heroBannerSlot / handleRouting) so it sits beside the headline
+       instead of floating above it as a separate top bar. No navbar-clearing
+       padding is needed here since it's no longer in that position. */
+    #globalBannerWrap.gbw-home {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      padding: 0;
+      background: transparent;
+    }
+
+    /* Every other page: banner renders as a full-width horizontal strip
+       fixed at the top of that section's content, in normal flow. */
+    #globalBannerWrap.gbw-page {
+      display: block;
+      padding-bottom: 1.5rem;
+    }
+
+    #globalBannerWrap.gbw-page #dailyGreetingBanner {
+      margin: 10px auto 0 auto;
+    }
+
+    /* ── Shared banner element ── */
+    #dailyGreetingBanner {
+      position: relative;
+      box-sizing: border-box;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #18110a 0%, #0a0705 100%);
+      border: 1px solid rgba(212, 175, 55, 0.45);
+      box-shadow:
+        0 0 35px rgba(212, 175, 55, 0.35),
+        0 0 14px rgba(243, 186, 47, 0.25),
+        inset 0 0 20px rgba(212, 175, 55, 0.12);
+      transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+    }
+
+    #dailyGreetingBanner:hover {
+      border-color: rgba(212, 175, 55, 0.8);
+      box-shadow:
+        0 0 55px rgba(212, 175, 55, 0.6),
+        0 0 22px rgba(243, 186, 47, 0.45),
+        inset 0 0 30px rgba(212, 175, 55, 0.25);
+      transform: translateY(-2px);
+    }
+
+    .dgb-day-label {
+      font-size: 11px;
+      color: #8c8275;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    .dgb-mantra {
+      font-size: 19px;
+      font-weight: 700;
+      color: #f3ba2f;
+      text-shadow: 0 0 10px rgba(243, 186, 47, 0.3);
+      letter-spacing: 0.5px;
+      line-height: 1.3;
+      margin: 0;
+    }
+
+    .dgb-sub {
+      font-size: 12px;
+      color: #a39281;
+      font-weight: 400;
+      margin: 3px 0 0 0;
+    }
+
+    .dgb-symbol {
+      font-size: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.5));
+      flex-shrink: 0;
+    }
+
+    /* Horizontal Banner (all pages except Home) */
+    .dgb-horizontal {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 60px;
+      padding: 10px 24px;
+      width: 100%;
+      max-width: 1280px;
+    }
+
+    .dgb-horizontal .dgb-text-wrap {
+      flex: 1;
+      min-width: 0;
+      text-align: center;
+    }
+
+    /* Vertical Banner Card (Home page only) — glassmorphism card that sits
+       inline beside the hero headline, vertically centered against it. */
+    .dgb-vertical {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 22px 20px;
+      border-radius: 16px;
+      background: rgba(15, 10, 5, 0.75);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      box-shadow: 0 0 25px rgba(212, 175, 55, 0.12);
+      width: 220px;
+      flex-shrink: 0;
+    }
+
+    .dgb-vertical .dgb-day-label {
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .dgb-vertical .dgb-symbol {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+
+    .dgb-vertical .dgb-mantra {
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+
+    .dgb-vertical .dgb-sub {
+      font-size: 12px;
+    }
+
+    @media (max-width: 640px) {
+      .dgb-horizontal {
+        padding: 10px 16px;
+      }
+      .dgb-mantra {
+        font-size: 16px;
+      }
+    }
+
+    /* ── Hero layout ──
+       The greeting card is pinned to the top-left of the hero, just below
+       the fixed navbar, and taken out of flow (position: absolute) so it
+       never pushes or skews the centered headline column next to it.
+       .hero-inner is just a centering wrapper for the text column now. */
+    .hero-inner {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .hero-banner-slot {
+      position: absolute;
+      top: 82px;   /* fixed navbar height (~72px) + a subtle 10px gap */
+      left: 1.5rem; /* matches the section's own px-6 gutter */
+      z-index: 20;
+      display: flex;
+    }
+
+    @media (max-width: 767px) {
+      /* On small/tablet screens the hero's two direct children (the banner
+         slot and the headline column) must stack vertically — banner first,
+         then headline — instead of sitting side-by-side or overlapping in
+         the row layout used on desktop. The decorative blur circles in this
+         section are position:absolute, so they're unaffected by this. */
+      #home {
+        flex-direction: column;
+        /* The desktop 'justify-center' utility class centers #home's flex
+           children as a group. Once flex-direction switches to column here,
+           that same rule vertically centers the banner+headline stack inside
+           the full min-h-screen height — which is what was pushing the
+           "SATURDAY" banner card down toward the middle of the screen instead
+           of keeping it anchored near the top, just under the top bar. */
+        justify-content: flex-start;
+        padding-top: 1.25rem;
+      }
+
+      /* Glassmorphism treatment for the greeting banner on mobile/tablet —
+         applies regardless of route (the compact Home strip below, and the
+         full-width horizontal strip used on every other page), so the hero
+         background stays subtly visible behind it instead of a solid block. */
+      #dailyGreetingBanner {
+        background: rgba(18, 13, 8, 0.55);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(212, 164, 55, 0.3);
+      }
+
+      /* The card would collide with / sit on top of the centered heading
+         in the desktop absolute layout, so it drops into normal flow above
+         the text instead, sized to the section width rather than fixed. */
+      .hero-banner-slot {
+        position: relative;
+        top: auto;
+        left: auto;
+        width: 100%;
+        max-width: 90%;
+        margin: 0 auto 1.5rem auto;
+        justify-content: center;
+      }
+
+      .hero-banner-slot .gbw-home {
+        width: 100%;
+      }
+
+      /* The vertical greeting card (Home route only) becomes a compact
+         horizontal strip on mobile/tablet so it reads as a slim banner
+         above the headline rather than a tall block pushing content down. */
+      .hero-banner-slot #dailyGreetingBanner.dgb-vertical {
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        text-align: left;
+        width: 100%;
+        max-width: 100%;
+        padding: 10px 18px;
+        gap: 12px;
+      }
+
+      .hero-banner-slot .dgb-vertical .dgb-text-wrap {
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+      }
+
+      .hero-banner-slot .dgb-vertical .dgb-day-label {
+        font-size: 10px;
+        margin-bottom: 2px;
+      }
+
+      .hero-banner-slot .dgb-vertical .dgb-symbol {
+        font-size: 24px;
+        margin-bottom: 0;
+      }
+
+      .hero-banner-slot .dgb-vertical .dgb-mantra {
+        font-size: 15px;
+        margin-bottom: 2px;
+      }
+
+      .hero-banner-slot .dgb-vertical .dgb-sub {
+        font-size: 11px;
+      }
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       Consistent top spacing across every routed section. Each section
+       already carries its own py-24 utility for overall rhythm, but this
+       guarantees a minimum top clearance and normal flow positioning so
+       headings can never clip behind the fixed navbar or the global banner,
+       regardless of future utility-class changes.
+       ══════════════════════════════════════════════════════════════════ */
+    #wisdom,
+    #sloka,
+    #community,
+    #feed,
+    #thoughts,
+    #join {
+      position: relative;
+      padding-top: 2rem;
+    }

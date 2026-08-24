@@ -10,6 +10,7 @@
     href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Poppins:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600&display=swap"
     rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -36,1184 +37,1545 @@
       }
     }
   </script>
-  <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      background-color: #0a0704;
-    }
-
-    .font-serif {
-      font-family: 'Cinzel', serif;
-    }
-
-    .devanagari {
-      font-family: 'Noto Sans Devanagari', sans-serif;
-    }
-
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: #120d08;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #d4a437;
-      border-radius: 4px;
-    }
-
-    .gold-text {
-      background: linear-gradient(135deg, #f2d492 0%, #d4a437 50%, #ff9d31 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .hero-bg {
-      background-image: linear-gradient(rgba(10, 7, 4, 0.75), rgba(10, 7, 4, 0.92)), url('hero.png');
-      background-size: cover;
-      background-position: center;
-    }
-
-    .glass-card {
-      background: rgba(28, 20, 12, 0.55);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(212, 164, 55, 0.25);
-    }
-
-    .tab-btn.active {
-      background: linear-gradient(135deg, #d4a437, #ff9d31);
-      color: #0a0704;
-    }
-
-    .fade-in {
-      animation: fadeIn 0.6s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .toast {
-      transition: all 0.4s ease;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="mobile.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
 <body class="text-gray-200">
 
-<div id="authModal" class="hidden fixed inset-0 z-[90] flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm">
-  <div class="glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 w-full max-w-md relative">
-    <button id="closeAuthModal" class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 text-xl">✕</button>
-
-    <div class="flex gap-3 mb-6">
-      <button data-authtab="login" class="auth-tab-btn active flex-1 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">Log In</button>
-      <button data-authtab="signup" class="auth-tab-btn flex-1 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">Sign Up</button>
+  <!-- ===================== NOTIFICATION DROPDOWN (standalone — works on mobile too) ===================== -->
+  <div id="notifDropdown"
+    class="hidden fixed top-16 right-5 glass-card rounded-2xl w-80 max-h-[420px] shadow-2xl z-[115] border border-gold-500/20 flex flex-col overflow-hidden">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-gold-500/10 shrink-0">
+      <p class="text-sm font-semibold text-gray-100">Notifications</p>
+      <button id="notifMarkAllReadBtn" class="text-xs text-gold-400 hover:text-gold-300 transition-colors">Mark all
+        read</button>
+      <button id="notifCloseBtn" class="text-gray-400 hover:text-gold-400 text-lg leading-none">✕</button>
     </div>
-
-  
-    <form id="loginFormAuth" class="space-y-4">
-      <h3 class="font-serif text-xl font-bold gold-text text-center mb-2">Welcome Back</h3>
-      <input type="email" name="email" required placeholder="Email address"
-        class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
-      <input type="password" name="password" required minlength="6" placeholder="Password"
-        class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
-      <button type="submit" id="loginSubmitBtn" class="w-full py-3 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold shadow-lg hover:scale-[1.02] transition">
-        Log In
-      </button>
-    </form>
-
-   
-    <form id="signupFormAuth" class="hidden space-y-4">
-      <h3 class="font-serif text-xl font-bold gold-text text-center mb-2">Create Your Account</h3>
-      <input type="text" name="name" required minlength="2" placeholder="Full name"
-        class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
-      <input type="email" name="email" required placeholder="Email address"
-        class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
-      <input type="password" name="password" required minlength="6" placeholder="Password (min. 6 characters)"
-        class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
-      <button type="submit" id="signupSubmitBtn" class="w-full py-3 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold shadow-lg hover:scale-[1.02] transition">
-        Sign Up
-      </button>
-    </form>
+    <div id="notifListLoading" class="hidden py-8 text-center text-xs text-gray-500">Loading…</div>
+    <div id="notifListEmpty" class="hidden py-10 text-center text-xs text-gray-500">No notifications yet.</div>
+    <div id="notifList" class="overflow-y-auto flex-1"></div>
   </div>
-</div>
 
-
-<div id="changePasswordModal" class="hidden fixed inset-0 z-[90] flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm">
-  <div class="glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 w-full max-w-md relative">
-    <button id="closeChangePasswordModal" class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 text-xl">✕</button>
-    <h3 class="font-serif text-xl font-bold gold-text text-center mb-6">🔒 Change Password</h3>
-
-    <form id="changePasswordForm" class="space-y-4">
-      <div>
-        <label class="block text-sm text-gold-400 mb-2">Current Password</label>
-        <input type="password" name="currentPassword" required minlength="6" placeholder="Enter current password"
-          class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
-      </div>
-      <div>
-        <label class="block text-sm text-gold-400 mb-2">New Password</label>
-        <input type="password" name="newPassword" required minlength="6" placeholder="At least 6 characters"
-          class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
-      </div>
-      <div>
-        <label class="block text-sm text-gold-400 mb-2">Confirm New Password</label>
-        <input type="password" name="confirmNewPassword" required minlength="6" placeholder="Re-enter new password"
-          class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition" />
-      </div>
-      <button type="submit" id="changePasswordSubmitBtn" class="w-full py-3 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold shadow-lg hover:scale-[1.02] transition">
-        Update Password
+  <!-- ===================== PERSISTENT MOBILE TOP BAR (Mobile & Tablet, ≤767px) — visible on every section ===================== -->
+  <div id="mobileTopBar">
+   <a href="#home" class="mobile-top-bar-logo flex items-center gap-2">
+  <span class="om-glow-badge divine-pulse" style="width:30px; height:30px; font-size:1rem;">ॐ</span>
+  <span>Sanatan Gyan</span>
+</a>
+    <div class="mobile-top-bar-actions">
+      <button id="mobTopNotifBtn" class="mobile-top-bar-btn auth-hide" title="Notifications">
+        🔔<span id="mobTopNotifDot" class="hidden mob-nav-unread-dot"></span>
       </button>
-    </form>
-  </div>
-</div>
-
-<div id="commentsModal" class="hidden fixed inset-0 z-[90] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm">
-  <div class="glass-card rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-lg max-h-[85vh] flex flex-col relative">
-    <button id="closeCommentsModal" class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 text-xl">✕</button>
-    <h3 class="font-serif text-xl font-bold gold-text mb-1 pr-8" id="commentsModalTitle">Comments</h3>
-    <p class="text-xs text-gray-500 mb-4" id="commentsModalCount">0 comments</p>
-
-    <div id="commentsList" class="flex-1 overflow-y-auto space-y-4 mb-4 pr-1"></div>
-    <p id="commentsEmptyMsg" class="hidden text-center text-gray-500 text-sm py-6">No comments yet. Be the first to share your thoughts.</p>
-
-    <form id="addCommentForm" class="flex items-end gap-2 pt-4 border-t border-gold-500/20">
-      <textarea id="commentInput" rows="2" maxlength="1000" placeholder="Add a comment..."
-        class="flex-1 bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-2 text-sm text-gray-100 focus:outline-none focus:border-gold-500 transition resize-none"></textarea>
-      <button type="submit" id="commentSubmitBtn" class="px-4 py-2 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold text-sm shrink-0 hover:scale-105 transition">Post</button>
-    </form>
-    <p id="commentLoginPrompt" class="hidden text-center text-sm text-gray-400 pt-3">
-      <a href="#" id="commentLoginLink" class="text-gold-400 underline">Log in</a> to join the conversation.
-    </p>
-  </div>
-</div>
- 
-  <div id="toast" class="toast fixed top-5 right-5 z-[100] translate-x-[150%] opacity-0 max-w-sm">
-    <div id="toastBox"
-      class="glass-card rounded-xl px-5 py-4 shadow-2xl border-l-4 border-gold-500 flex items-start gap-3">
-      <span id="toastIcon" class="text-2xl">✅</span>
-      <p id="toastMessage" class="text-sm text-gray-100"></p>
+      <button id="mobTopNewPostBtn" class="mobile-top-bar-btn mobile-top-bar-btn-primary auth-hide"
+        title="New Post">＋</button>
     </div>
   </div>
 
-
-  <header class="fixed top-0 w-full z-50 bg-dark-900/90 backdrop-blur-md border-b border-gold-500/20">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-      <a href="#home" class="flex items-center gap-2">
-        <span class="text-3xl">🕉️</span>
-        <span class="font-serif text-2xl font-bold gold-text tracking-wide">Sanatan Gyan</span>
-      </a>
-      <nav class="hidden md:flex items-center gap-6 text-sm font-medium">
-  <a href="#home" class="hover:text-gold-400 transition">Home</a>
-  <a href="#wisdom" class="hover:text-gold-400 transition">Explore Wisdom</a>
-  <a href="#sloka" class="hover:text-gold-400 transition">Daily Sloka</a>
-  <a href="#community" class="hover:text-gold-400 transition">Community</a>
-  <a href="#thoughts" class="hover:text-gold-400 transition">Share Thoughts</a>
-  <a href="#join" class="hover:text-gold-400 transition">Join Us</a>
-  <a id="adminPortalBtn" href="/admin" class="hidden px-4 py-2 rounded-full border border-gold-500 text-gold-400 hover:bg-gold-500 hover:text-dark-900 transition">Admin Portal</a>
-
-
-  <div id="authButtons" class="flex items-center gap-2">
-    <button id="loginNavBtn" class="px-4 py-2 rounded-full border border-gold-500/50 text-gold-400 hover:bg-gold-500/10 transition text-sm">Log In</button>
-    <button id="signupNavBtn" class="px-4 py-2 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold text-sm hover:scale-105 transition">Sign Up</button>
-  </div>
-
-  
-  <div id="userMenu" class="hidden items-center gap-3 relative">
-    <button id="userMenuBtn" class="flex items-center gap-2">
-      <span id="userAvatar" class="w-9 h-9 rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-sm"></span>
-      <span id="userNameLabel" class="text-gray-200 text-sm max-w-[100px] truncate"></span>
+  <!-- ===================== MOBILE BOTTOM NAV (Mobile & Tablet, ≤767px) =====================
+       5 items only. "Wisdom" is reached exclusively via the top header's Book icon
+       (see mobile.js openWisdomOverlay) — it is never stacked into Home. "Sloka" still
+       lives inside Community (top section, scroll down for Community posts) — see
+       handleRouting(), which merges #sloka into the #community view on mobile/tablet
+       viewports and transparently redirects any legacy #sloka links to that tab + scrolls
+       to the right spot. -->
+  <nav id="mobileBottomNav">
+    <button class="mob-nav-btn active" data-nav="home" onclick="window.location.hash='#home'">
+      <span>🏠</span><span class="mob-nav-label">Home</span>
     </button>
-    <div id="userDropdown" class="hidden absolute top-12 right-0 glass-card rounded-xl py-2 w-48 shadow-2xl z-50">
-      <button id="changePasswordNavBtn" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gold-500/10 transition">🔒 Change Password</button>
-      <button id="logoutBtn" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition">Logout</button>
-    </div>
-  </div>
-</nav>
-<button id="mobileMenuBtn" class="md:hidden text-gold-400 text-2xl">☰</button>
-    </div>
-   <div id="mobileMenu" class="hidden md:hidden flex-col gap-3 px-6 pb-4 bg-dark-900/95">
-  <a href="#home" class="py-2 border-b border-gold-500/10">Home</a>
-  <a href="#wisdom" class="py-2 border-b border-gold-500/10">Explore Wisdom</a>
-  <a href="#sloka" class="py-2 border-b border-gold-500/10">Daily Sloka</a>
-  <a href="#community" class="py-2 border-b border-gold-500/10">Community</a>
-  <a href="#thoughts" class="py-2 border-b border-gold-500/10">Share Thoughts</a>
-  <a href="#join" class="py-2 border-b border-gold-500/10">Join Us</a>
-  <a id="mobileAdminPortalBtn" href="/admin" class="hidden py-2 border-b border-gold-500/10 text-gold-400">Admin Portal</a>
-  <div id="mobileAuthButtons" class="flex gap-2 pt-2">
-    <button id="mobileLoginBtn" class="flex-1 px-4 py-2 rounded-full border border-gold-500/50 text-gold-400 text-sm">Log In</button>
-    <button id="mobileSignupBtn" class="flex-1 px-4 py-2 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold text-sm">Sign Up</button>
-  </div>
-  <div id="mobileUserMenu" class="hidden pt-2 space-y-2">
-    <p class="text-gray-300 text-sm mb-2">Signed in as <span id="mobileUserNameLabel" class="text-gold-400 font-medium"></span></p>
-    <button id="mobileChangePasswordBtn" class="w-full px-4 py-2 rounded-full border border-gold-500/40 text-gold-400 text-sm">🔒 Change Password</button>
-    <button id="mobileLogoutBtn" class="w-full px-4 py-2 rounded-full border border-red-500/40 text-red-400 text-sm">Logout</button>
-  </div>
-</div>
-  </header>
+    <button class="mob-nav-btn" data-nav="community" onclick="window.location.hash='#community'">
+      <span>🌐</span><span class="mob-nav-label">Community</span>
+    </button>
+    <button class="mob-nav-btn" data-nav="feed" onclick="window.location.hash='#feed'">
+      <span>📸</span><span class="mob-nav-label">Feed</span>
+    </button>
+    <button class="mob-nav-btn auth-hide" id="mobChatBtn" onclick="openChatDrawer()">
+      <span>💬</span><span class="mob-nav-label">Chat</span>
+      <span id="mobChatUnreadDot" class="hidden mob-nav-unread-dot"></span>
+    </button>
+    <button class="mob-nav-btn" id="mobProfileBtn" data-nav="profile">
+      <span id="mobProfileAvatarSlot" class="mob-nav-avatar-slot">👤</span><span class="mob-nav-label">Profile</span>
+    </button>
+  </nav>
 
+  <!-- ===================== JOIN / VOLUNTEER MODAL ===================== -->
+  <div id="joinModal"
+    class="hidden fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/80 backdrop-blur-sm modal-backdrop">
+    <div class="glass-card modal-panel rounded-2xl sm:rounded-3xl p-6 sm:p-8 w-full max-w-lg relative max-h-[90vh] overflow-y-auto border border-gold-500/30">
+      <button id="closeJoinModal"
+        class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 transition-colors text-xl leading-none">✕</button>
 
-  <section id="home" class="hero-bg min-h-screen flex items-center justify-center pt-24 px-6 relative overflow-hidden">
-    <div class="absolute top-1/3 left-10 w-72 h-72 bg-saffron-500/20 rounded-full blur-3xl"></div>
-    <div class="absolute bottom-10 right-10 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl"></div>
-    <div class="max-w-4xl text-center relative z-10 fade-in">
-      <p class="devanagari text-gold-400 text-xl md:text-2xl mb-4 tracking-wide">सत्यमेव जयते</p>
-      <h1 class="font-serif text-4xl md:text-6xl font-bold mb-6 leading-tight">
-        Discover the <span class="gold-text">Eternal Wisdom</span><br /> of Sanatan Dharma
-      </h1>
-      <p class="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-10">
-        A sanctuary for seekers — explore the Gita, Vedas, Upanishads, and timeless philosophy.
-        Learn, reflect, and share your journey with a global community of wisdom-lovers.
-      </p>
-      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-        <a href="#wisdom"
-          class="px-8 py-3 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold shadow-lg shadow-saffron-500/30 hover:scale-105 transition">Begin
-          Your Journey</a>
-        <a href="#thoughts"
-          class="px-8 py-3 rounded-full border border-gold-500 text-gold-400 hover:bg-gold-500/10 transition">Share Your
-          Thoughts</a>
-      </div>
-    </div>
-  </section>
-
-
-  <section id="wisdom" class="py-24 px-6 bg-dark-800">
-    <div class="max-w-6xl mx-auto">
-      <div class="text-center mb-14">
-        <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3">Sacred Texts</p>
-        <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text">Explore Wisdom</h2>
+      <div class="text-center mb-6">
+        <h3 class="font-serif text-2xl font-bold gold-text">🤝 Join Sanatan Gyan</h3>
+        <p class="text-xs text-gray-400 mt-1">Volunteer, contribute articles, or join our community.</p>
       </div>
 
-      <div class="flex flex-wrap justify-center gap-3 mb-10" id="wisdomTabs">
-        <button data-tab="gita"
-          class="tab-btn active px-6 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">Bhagavad
-          Gita</button>
-        <button data-tab="vedas"
-          class="tab-btn px-6 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">Vedas</button>
-        <button data-tab="upanishads"
-          class="tab-btn px-6 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">Upanishads</button>
-        <button data-tab="philosophy"
-          class="tab-btn px-6 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">Philosophy</button>
-      </div>
-
-      <div id="wisdomContent" class="grid md:grid-cols-2 gap-8 items-center fade-in">
-        
-      </div>
-    </div>
-  </section>
-
- 
-  <section id="sloka" class="py-24 px-6 bg-gradient-to-b from-dark-900 to-dark-800 relative">
-    <div class="max-w-4xl mx-auto text-center">
-      <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3">Daily Inspiration</p>
-      <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text mb-4">Daily Sloka</h2>
-      <p class="text-gray-400 mb-12">Click below to receive a verse of wisdom for your day.</p>
-
-      <div class="glass-card rounded-3xl p-8 md:p-12 shadow-2xl">
-        <p id="slokaSanskrit" class="devanagari text-2xl md:text-3xl text-gold-300 leading-relaxed mb-6"></p>
-        <p id="slokaTransliteration" class="italic text-gray-400 mb-6"></p>
-        <div class="border-t border-gold-500/20 pt-6 grid md:grid-cols-2 gap-6 text-left">
-          <div>
-            <p class="text-gold-400 text-xs uppercase tracking-widest mb-2">English</p>
-            <p id="slokaEnglish" class="text-gray-200"></p>
-          </div>
-          <div>
-            <p class="text-gold-400 text-xs uppercase tracking-widest mb-2">हिंदी</p>
-            <p id="slokaHindi" class="devanagari text-gray-200"></p>
-          </div>
-        </div>
-        <p id="slokaSource" class="text-gold-500 text-sm mt-6"></p>
-      </div>
-
-      <button id="newSlokaBtn"
-        class="mt-8 px-8 py-3 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold shadow-lg hover:scale-105 transition">
-        ✨ Reveal Today's Sloka
-      </button>
-    </div>
-  </section>
-
- 
-  <section id="community" class="py-16 sm:py-24 px-4 sm:px-6 bg-dark-800">
-    <div class="max-w-6xl mx-auto">
-      <div class="text-center mb-12">
-        <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3">Voices of the Community</p>
-        <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text">Community Insights &amp; Thoughts</h2>
-        <p class="text-gray-400 mt-4 max-w-2xl mx-auto">Reflections, essays, and insights shared by fellow seekers on this path.</p>
-      </div>
-
-      <div id="communityGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-      <p id="communityEmptyMsg" class="hidden text-center text-gray-500 py-10">No approved thoughts yet. Be the first to share yours below!</p>
-      <p id="communityLoadingMsg" class="text-center text-gray-500 py-10">Loading community thoughts...</p>
-    </div>
-  </section>
-
-  <section id="thoughts" class="py-24 px-6 bg-gradient-to-b from-dark-800 to-dark-900">
-    <div class="max-w-3xl mx-auto">
-      <div class="text-center mb-12">
-        <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3">Your Voice Matters</p>
-        <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text">Present Your Thought</h2>
-        <p class="text-gray-400 mt-4">Share an article, reflection, or insight with our community.</p>
-      </div>
-
-      <form id="thoughtForm" class="glass-card rounded-3xl p-8 md:p-10 grid md:grid-cols-2 gap-6">
-        <div class="md:col-span-1">
-          <label class="block text-sm text-gold-400 mb-2">Author Name</label>
-          <input type="text" name="authorName" required minlength="2" maxlength="100"
-            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
-            placeholder="Your name" />
-        </div>
-        <div class="md:col-span-1">
-          <label class="block text-sm text-gold-400 mb-2">Email Address</label>
-          <input type="email" name="email" required
-            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
-            placeholder="you@example.com" />
-        </div>
-        <div class="md:col-span-2">
-          <label class="block text-sm text-gold-400 mb-2">Title</label>
-          <input type="text" name="title" required minlength="3" maxlength="200"
-            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
-            placeholder="Title of your thought/article" />
-        </div>
-        <div class="md:col-span-2">
-          <label class="block text-sm text-gold-400 mb-2">Category</label>
-          <select name="category" required
-            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition">
-            <option value="" disabled selected>Select a category</option>
-            <option value="Philosophy">Philosophy</option>
-            <option value="Gita">Gita</option>
-            <option value="History">History</option>
-            <option value="General">General</option>
-          </select>
-        </div>
-        <div class="md:col-span-2">
-          <label class="block text-sm text-gold-400 mb-2">Your Thought / Article</label>
-          <textarea name="content" required minlength="20" maxlength="10000" rows="6"
-            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
-            placeholder="Write your reflection here..."></textarea>
-        </div>
-        <div class="md:col-span-2">
-          <button type="submit" id="thoughtSubmitBtn"
-            class="w-full py-3 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold shadow-lg hover:scale-[1.02] transition">
-            Submit Thought
-          </button>
-        </div>
-      </form>
-    </div>
-  </section>
-
-
-  <section id="join" class="py-24 px-6 bg-dark-800">
-    <div class="max-w-3xl mx-auto">
-      <div class="text-center mb-12">
-        <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3">Be Part of the Journey</p>
-        <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text">Join Sanatan Gyan</h2>
-        <p class="text-gray-400 mt-4">Whether you wish to learn, volunteer, or contribute — we welcome you.</p>
-      </div>
-
-      <form id="contactForm" class="glass-card rounded-3xl p-8 md:p-10 grid md:grid-cols-2 gap-6">
-        <div class="md:col-span-1">
-          <label class="block text-sm text-gold-400 mb-2">Full Name</label>
+      <form id="contactForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-1">Full Name</label>
           <input type="text" name="name" required minlength="2" maxlength="100"
-            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition"
             placeholder="Your name" />
         </div>
-        <div class="md:col-span-1">
-          <label class="block text-sm text-gold-400 mb-2">Email Address</label>
-          <input type="email" name="email" required
-            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
-            placeholder="you@example.com" />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-1">Email Address</label>
+            <input type="email" name="email" required
+              class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition"
+              placeholder="you@example.com" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-1">Phone Number</label>
+            <input type="tel" name="phone" required
+              class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition"
+              placeholder="+91 98765 43210" />
+          </div>
         </div>
-        <div class="md:col-span-1">
-          <label class="block text-sm text-gold-400 mb-2">Phone Number</label>
-          <input type="tel" name="phone" required
-            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
-            placeholder="+91 98765 43210" />
-        </div>
-        <div class="md:col-span-1">
-          <label class="block text-sm text-gold-400 mb-2">I want to join as</label>
+        <div>
+          <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-1">I want to join as</label>
           <select name="role" required
-            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition">
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition">
             <option value="" disabled selected>Select a role</option>
             <option value="Learner">Learner</option>
             <option value="Volunteer">Volunteer</option>
             <option value="Contributor">Contributor</option>
           </select>
         </div>
-        <div class="md:col-span-2">
-          <label class="block text-sm text-gold-400 mb-2">Message</label>
-          <textarea name="message" required minlength="5" maxlength="2000" rows="4"
-            class="w-full bg-dark-700/60 border border-gold-500/30 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:border-gold-500 transition"
-            placeholder="Tell us why you'd like to join..."></textarea>
+        <div>
+          <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-1">Message</label>
+          <textarea name="message" required minlength="5" maxlength="2000" rows="3"
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition resize-none"
+            placeholder="Tell us why you'd like to join…"></textarea>
         </div>
-        <div class="md:col-span-2">
-          <button type="submit" id="contactSubmitBtn"
-            class="w-full py-3 rounded-full bg-gradient-to-r from-saffron-500 to-gold-500 text-dark-900 font-semibold shadow-lg hover:scale-[1.02] transition">
-            Submit
-          </button>
-        </div>
+        <button type="submit" id="contactSubmitBtn"
+          class="btn-primary w-full py-3 rounded-full shadow-lg text-sm font-semibold">Submit Application</button>
       </form>
     </div>
+  </div>
+  <!-- ===================== AUTH MODAL ===================== -->
+  <div id="authModal"
+    class="hidden fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm modal-backdrop">
+    <div class="glass-card modal-panel rounded-2xl sm:rounded-3xl p-6 sm:p-8 w-full max-w-md max-h-[90vh] overflow-y-auto relative">
+      <button id="closeAuthModal"
+        class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 transition-colors text-xl leading-none">✕</button>
+
+      <!-- Tabs -->
+      <div class="flex gap-2 mb-7 p-1 bg-dark-900/60 rounded-full">
+        <button data-authtab="login"
+          class="auth-tab-btn active flex-1 py-2 rounded-full text-sm font-medium transition-all">Log In</button>
+        <button data-authtab="signup"
+          class="auth-tab-btn flex-1 py-2 rounded-full text-sm font-medium transition-all text-gray-400">Sign
+          Up</button>
+      </div>
+
+      <!-- Login form -->
+      <form id="loginFormAuth" class="space-y-4">
+        <h3 class="font-serif text-xl font-bold gold-text text-center mb-1">Welcome Back</h3>
+        <p class="text-center text-xs text-gray-500 mb-5">Continue your journey of eternal wisdom</p>
+       <input type="text" name="email" required placeholder="Email or @username"
+  class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" />
+        <input type="password" name="password" required minlength="8" placeholder="Password"
+          class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition" />
+        <button type="submit" id="loginSubmitBtn" class="btn-primary w-full py-3 rounded-full shadow-lg text-sm">Log
+          In</button>
+          <!-- Divider -->
+     <div class="relative my-4">
+       <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gold-500/20"></div></div>
+       <div class="relative flex justify-center text-xs uppercase"><span class="bg-dark-800 px-2 text-gray-400 tracking-wider">— Or continue with —</span></div>
+     </div>
+
+     <!-- Google Identity Services config -->
+     <div id="g_id_onload"
+          data-client_id="992537017432-0sjs9ebdf04lmcigj65b93uner7kelv7.apps.googleusercontent.com"
+          data-callback="handleGoogleLogin"
+          data-auto_prompt="false"
+          class="hidden">
+     </div>
+
+     <!-- Google Sign-In — Google's own rendered button (not a custom
+          button + prompt()). Google's renderButton() automatically falls
+          back to the classic OAuth popup when One Tap/FedCM isn't
+          available, which prompt()-only did not — that's why the custom
+          button stopped working while this one is reliable. Sized to
+          fill the container width via JS below. -->
+     <div id="googleLoginBtnContainer" class="w-full flex justify-center" style="min-height:44px"></div>
+      </form>
+
+      <!-- Signup form -->
+      <!-- Signup form -->
+      <form id="signupFormAuth" class="hidden space-y-3.5">
+        <h3 class="font-serif text-xl font-bold gold-text text-center mb-1">Create Your Account</h3>
+        <p class="text-center text-xs text-gray-500 mb-4">Join a community of wisdom seekers</p>
+        <div>
+          <label class="block text-[11px] text-gray-400 mb-1">Full Name</label>
+          <input type="text" name="name" required minlength="2" placeholder="e.g. Amit Kumar"
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-gray-400 mb-1">Username (Unique)</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gold-400 text-sm font-semibold">@</span>
+            <input type="text" name="username" required minlength="3" maxlength="30" pattern="^[a-zA-Z0-9_.]+$" placeholder="amit_kumar"
+              class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl pl-8 pr-4 py-2.5 text-gray-100 text-sm glow-input transition lowercase" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-[11px] text-gray-400 mb-1">Email Address</label>
+          <input type="email" name="email" required placeholder="you@example.com"
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-gray-400 mb-1">Password</label>
+          <input type="password" name="password" required minlength="8" placeholder="Min. 6 characters"
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition" />
+        </div>
+        <button type="submit" id="signupSubmitBtn" class="btn-primary w-full py-3 rounded-full shadow-lg text-sm font-semibold mt-2">
+          Create Account
+        </button>
+        <!-- Divider -->
+        <div class="relative my-3">
+          <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gold-500/20"></div></div>
+          <div class="relative flex justify-center text-xs uppercase"><span class="bg-dark-800 px-2 text-gray-400 tracking-wider">— Or sign up with —</span></div>
+        </div>
+
+        <!-- Google Sign-Up — Google's own rendered button (see login tab
+             for why: renderButton() has an automatic popup fallback that
+             prompt()-only custom buttons don't get). -->
+        <div id="googleSignupBtnContainer" class="w-full flex justify-center" style="min-height:44px"></div>
+      </form>
+    </div>
+  </div>
+<!-- ===================== CONSOLIDATED PROFILE MODAL (All-in-One Hub) ===================== -->
+  <div id="profileModal"
+    class="hidden fixed inset-0 z-[111] flex items-center justify-center px-4 bg-black/80 backdrop-blur-sm modal-backdrop">
+    <div class="glass-card modal-panel rounded-2xl sm:rounded-3xl w-full max-w-3xl relative max-h-[92vh] overflow-y-auto">
+      <!-- Top-left Cancel / Back — mirrors the ✕ so the sheet has a clear
+           exit either way you'd reach for it. -->
+      <button id="cancelProfileModal" type="button"
+        class="absolute top-4 left-4 flex items-center gap-1 text-gray-400 hover:text-gold-400 transition-colors text-xs sm:text-sm font-medium z-10">
+        <span aria-hidden="true">‹</span> Cancel
+      </button>
+      <button id="closeProfileModal"
+        class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 transition-colors text-xl leading-none z-10">✕</button>
+
+      <!-- ── Profile Header ── -->
+      <div class="flex flex-col items-center pt-8 pb-5 px-6 border-b border-gold-500/12">
+        <!-- Avatar (clean, no hover overlay) -->
+        <div class="relative mb-3" id="pmAvatarWrap">
+          <span id="pmAvatar"
+            class="w-24 h-24 rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-3xl bg-cover bg-center ring-4 ring-gold-500/30"></span>
+          <input type="file" id="pmAvatarInput" name="avatar" accept="image/png,image/jpeg,image/webp"
+            class="hidden" />
+        </div>
+        <!-- Visible photo action buttons -->
+        <div class="flex items-center gap-2 mb-2">
+          <button id="pmChangePhotoBtn" type="button"
+            class="flex items-center gap-1.5 text-xs font-medium text-dark-900 bg-gold-500 hover:bg-gold-400 transition-colors px-3.5 py-1.5 rounded-full shadow-sm">
+            📷 Change Photo
+          </button>
+          <button id="pmRemovePhotoBtn" type="button"
+            class="hidden items-center gap-1.5 text-xs font-medium text-red-400 hover:text-red-300 border border-red-500/30 hover:border-red-400/50 transition-colors px-3.5 py-1.5 rounded-full">
+            🗑️ Remove Photo
+          </button>
+        </div>
+        <p id="pmName" class="font-serif text-xl font-bold gold-text text-center"></p>
+        <p id="pmUsername" class="text-sm text-gray-400 mt-0.5"></p>
+        <p id="pmJoinDate" class="text-xs text-gray-600 mt-1"></p>
+      </div>
+
+      <!-- ── Tab Navigation ── -->
+      <div class="flex border-b border-gold-500/12">
+        <button class="pm-tab-btn flex-1 py-3 text-xs font-semibold text-gold-400 border-b-2 border-gold-500 transition-colors" data-pmtab="overview">
+          📊 Overview
+        </button>
+        <button class="pm-tab-btn flex-1 py-3 text-xs font-medium text-gray-400 hover:text-gray-200 border-b-2 border-transparent transition-colors" data-pmtab="edit">
+          ✏️ Edit Account
+        </button>
+        <button class="pm-tab-btn flex-1 py-3 text-xs font-medium text-gray-400 hover:text-gray-200 border-b-2 border-transparent transition-colors" data-pmtab="password">
+          🔒 Password
+        </button>
+      </div>
+
+      <!-- ── Tab 1: Activity (Posts & Saved) ── -->
+      <div id="pmTabOverview" class="p-6 space-y-5">
+        <div class="grid grid-cols-3 gap-3 text-center">
+          <div class="glass-card rounded-xl py-3">
+            <p id="pmStatPosts" class="font-serif text-lg font-bold gold-text">—</p>
+            <p class="text-xs text-gray-500 mt-0.5">Posts</p>
+          </div>
+          <div class="glass-card rounded-xl py-3">
+            <p id="pmStatFollowers" class="font-serif text-lg font-bold gold-text">—</p>
+            <p class="text-xs text-gray-500 mt-0.5">Followers</p>
+          </div>
+          <div class="glass-card rounded-xl py-3">
+            <p id="pmStatFollowing" class="font-serif text-lg font-bold gold-text">—</p>
+            <p class="text-xs text-gray-500 mt-0.5">Following</p>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold text-gold-400 uppercase tracking-wider mb-2">My Posts</p>
+          <div id="pmPostsGrid" class="grid grid-cols-4 gap-1.5">
+            <p class="col-span-4 text-xs text-gray-500 text-center py-4">Loading…</p>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold text-gold-400 uppercase tracking-wider mb-2">Saved & Liked</p>
+          <div id="pmSavedGrid" class="grid grid-cols-4 gap-1.5">
+            <p class="col-span-4 text-xs text-gray-500 text-center py-4">Loading…</p>
+          </div>
+        </div>
+
+        <button id="pmGoToPublicProfileBtn"
+          class="btn-ghost w-full py-2.5 rounded-full text-sm">View Full Profile Page →</button>
+      </div>
+
+      <!-- ── Tab 2: Edit Account Details ── -->
+      <div id="pmTabEdit" class="hidden p-6">
+        <form id="pmEditAccountForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-1">Full Name</label>
+            <input type="text" id="pmNameInput" name="name" required minlength="2" maxlength="50"
+              class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-1">Username</label>
+            <div class="relative">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gold-400 text-sm font-semibold">@</span>
+              <input type="text" id="pmUsernameInput" name="username" required minlength="3" maxlength="30"
+                pattern="^[a-zA-Z0-9_.]+$"
+                class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl pl-8 pr-28 py-2.5 text-gray-100 text-sm glow-input transition lowercase" />
+              <span id="pmUsernameStatus" class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium"></span>
+            </div>
+            <p class="text-[11px] text-gray-500 mt-1.5 flex items-center gap-1">
+              <span>⏱️</span> <em>Username can only be changed once every 30 days.</em>
+            </p>
+          </div>
+          <button type="submit" id="pmEditAccountSubmitBtn"
+            class="btn-primary w-full py-3 rounded-full shadow-lg text-sm font-semibold">Save Changes</button>
+        </form>
+      </div>
+
+      <!-- ── Tab 3: Change Password ── -->
+      <div id="pmTabPassword" class="hidden p-6">
+        <form id="pmChangePasswordForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-1">Current Password</label>
+            <input type="password" name="currentPassword" required minlength="8" placeholder="Enter current password (min 8 chars)"
+              class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-1">New Password</label>
+            <input type="password" name="newPassword" required minlength="8" placeholder="At least 8 characters"
+              class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-1">Confirm New Password</label>
+            <input type="password" name="confirmNewPassword" required minlength="8" placeholder="Re-enter new password"
+              class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition" />
+          </div>
+          <button type="submit" id="pmChangePasswordSubmitBtn"
+            class="btn-primary w-full py-3 rounded-full shadow-lg text-sm">Update Password</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== LEGACY MODAL STUBS (hidden; JS refs kept alive) ===================== -->
+  <!-- These are invisible stubs. The real forms now live inside #profileModal above. -->
+  <div id="editProfileDetailsModal" class="hidden">
+    <form id="editProfileDetailsForm">
+      <input id="editProfileNameInput" name="name" />
+      <input id="editProfileUsernameInput" name="username" />
+      <button id="editProfileDetailsSubmitBtn" type="submit"></button>
+    </form>
+    <button id="closeEditProfileDetailsModal"></button>
+  </div>
+  <div id="editProfileModal" class="hidden">
+    <img id="profilePicPreview" src="" alt="" />
+    <span id="profilePicPreviewInitials"></span>
+    <form id="profilePicForm">
+      <input type="file" id="profilePicInput" name="avatar" accept="image/png,image/jpeg,image/webp" />
+      <button id="profilePicSubmitBtn" type="submit"></button>
+    </form>
+    <button id="closeEditProfileModal"></button>
+  </div>
+  <div id="changePasswordModal" class="hidden">
+    <form id="changePasswordForm">
+      <input type="password" name="currentPassword" />
+      <input type="password" name="newPassword" />
+      <input type="password" name="confirmNewPassword" />
+      <button id="changePasswordSubmitBtn" type="submit"></button>
+    </form>
+    <button id="closeChangePasswordModal"></button>
+  </div>
+
+  <!-- ===================== COMMENTS MODAL ===================== -->
+  <div id="commentsModal"
+    class="hidden fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm modal-backdrop">
+    <div
+      class="glass-card modal-panel rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-lg max-h-[85vh] flex flex-col relative">
+      <button id="closeCommentsModal"
+        class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 transition-colors text-xl">✕</button>
+      <h3 class="font-serif text-xl font-bold gold-text mb-0.5 pr-8" id="commentsModalTitle">Comments</h3>
+      <p class="text-xs text-gray-500 mb-4" id="commentsModalCount">0 comments</p>
+
+      <div id="commentsList" class="flex-1 overflow-y-auto space-y-4 mb-4 pr-1"></div>
+      <p id="commentsEmptyMsg" class="hidden text-center text-gray-500 text-sm py-6">No comments yet. Be the first to
+        share your thoughts.</p>
+
+      <form id="addCommentForm" class="flex items-end gap-2 pt-4 border-t border-gold-500/15">
+        <textarea id="commentInput" rows="2" maxlength="1000" placeholder="Add a comment..."
+          class="flex-1 bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2 text-sm text-gray-100 glow-input transition resize-none"></textarea>
+        <button type="submit" id="commentSubmitBtn"
+          class="btn-primary px-4 py-2 rounded-full text-sm shrink-0">Post</button>
+      </form>
+      <p id="commentLoginPrompt" class="hidden text-center text-sm text-gray-400 pt-3">
+        <a href="#" id="commentLoginLink" class="text-gold-400 hover:text-gold-300 underline transition-colors">Log
+          in</a>
+        to join the conversation.
+      </p>
+    </div>
+  </div>
+
+  <!-- ===================== PUBLIC PROFILE — FULL PAGE ===================== -->
+  <div id="publicProfileModal" class="hidden fixed inset-0 z-[112] bg-dark-900 overflow-y-auto">
+
+    <!-- Sticky top bar -->
+    <div
+      class="sticky top-0 z-10 bg-dark-900/90 backdrop-blur-md border-b border-gold-500/12 px-4 py-3 flex items-center gap-3">
+      <button id="closePublicProfile"
+        class="w-8 h-8 rounded-full flex items-center justify-center text-gray-300 hover:text-gold-400 transition-colors text-lg shrink-0">←</button>
+      <p id="ppTopBarName" class="font-semibold text-sm text-gray-100 truncate"></p>
+      <!-- Settings gear — own profile only, relocated here from the bottom of the page -->
+      <button id="ppSettingsBtn" type="button" title="Settings" aria-label="Settings" class="hidden">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="max-w-[640px] mx-auto px-4 sm:px-5">
+      <!-- Instagram-style profile header -->
+      <div class="ig-profile-header">
+        <!-- Avatar -->
+        <div class="ig-profile-avatar-wrap">
+          <span id="ppAvatar"
+            class="ig-profile-avatar flex items-center justify-center font-serif font-bold text-dark-900 text-3xl bg-cover bg-center"></span>
+        </div>
+
+        <!-- Info -->
+        <div class="flex-1 min-w-0">
+          <p id="ppName" class="font-semibold text-lg text-gray-100 mb-0.5"></p>
+          <p id="ppUsername" class="text-sm text-gray-500 mb-3"></p>
+
+          <!-- Stats row: Instagram style -->
+          <div class="ig-profile-stats">
+            <div class="ig-profile-stat">
+              <span id="ppPostCount" class="ig-profile-stat-num">0</span>
+              <span class="ig-profile-stat-label">posts</span>
+            </div>
+            <button class="ig-profile-stat" id="ppFollowersBtn">
+              <span id="ppFollowerCount" class="ig-profile-stat-num">0</span>
+              <span class="ig-profile-stat-label">followers</span>
+            </button>
+            <button class="ig-profile-stat" id="ppFollowingBtn">
+              <span id="ppFollowingCount" class="ig-profile-stat-num">0</span>
+              <span class="ig-profile-stat-label">following</span>
+            </button>
+          </div>
+
+          <!-- Action buttons: Instagram-style, sit directly below stats.
+               ppFollowBtn becomes the sleek full-width "Edit Profile" button
+               (via .ig-edit-profile-btn, toggled in app.js) on your own
+               profile, or Follow/Unfollow on someone else's. -->
+          <div class="flex gap-2 flex-wrap ig-profile-actions" id="ppActions">
+            <button id="ppFollowBtn" class="btn-ghost px-4 py-1.5 rounded-lg text-sm font-semibold">Follow</button>
+            <button id="ppFriendBtn"
+              class="btn-ghost px-4 py-1.5 rounded-lg text-sm font-semibold text-saffron-400 border-saffron-500/40">Add
+              Friend</button>
+            <button id="ppUnfriendBtn"
+              class="hidden px-4 py-1.5 rounded-lg text-sm font-semibold border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors">Unfriend</button>
+            <button id="ppMessageBtn"
+              class="hidden btn-primary px-4 py-1.5 rounded-lg text-sm font-semibold">Message</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Instagram-style tab bar -->
+      <div class="ig-profile-tabs">
+        <div class="ig-profile-tab active pp-tab-btn" data-pptab="all">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+          </svg>
+        </div>
+        <div class="ig-profile-tab pp-tab-btn" data-pptab="photo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+        </div>
+        <div class="ig-profile-tab pp-tab-btn" data-pptab="reel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <polygon points="23 7 16 12 23 17 23 7" />
+            <rect x="1" y="5" width="15" height="14" rx="2" />
+          </svg>
+        </div>
+        <div class="ig-profile-tab pp-tab-btn hidden" id="ppSavedTabBtn" data-pptab="saved" title="Saved">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- 3-column post grid -->
+      <div id="ppPostsGrid" class="ig-post-grid"></div>
+      <p id="ppPostsEmpty" class="hidden text-center text-gray-500 text-sm py-16">No posts yet.</p>
+
+      <!-- Saved items (own profile only) -->
+      <div id="ppSavedSection" class="hidden">
+        <div id="ppSavedPostsGrid" class="ig-post-grid"></div>
+        <div id="ppSavedThoughtsList" class="space-y-3 mt-4"></div>
+        <p id="ppSavedLoading" class="hidden text-center text-gray-500 text-sm py-16">Loading saved items…</p>
+        <p id="ppSavedEmpty" class="hidden text-center text-gray-500 text-sm py-16">Nothing saved yet — tap the 🔖 icon
+          on any post or thought to save it here.</p>
+      </div>
+      <p id="ppPostsLoading" class="text-center text-gray-500 text-sm py-16">Loading profile...</p>
+
+    </div>
+
+    <!-- ── SETTINGS VIEW — opened via the top-right gear icon, rendered in-place
+         within the same Profile frame (not a separate popup). Has its own
+         Back button, and supports the hardware back button via history
+         pushState/popstate (wired up in app.js). ── -->
+    <div id="ppSettingsView">
+      <div id="ppSettingsTopBar">
+        <button id="ppSettingsBackBtn" type="button" aria-label="Back to profile">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          Back
+        </button>
+        <span>Settings</span>
+      </div>
+      <div id="ppSettingsBody" class="space-y-1">
+        <a href="#wisdom"
+          class="pp-more-link py-2.5 px-1 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors block">📖
+          Explore Wisdom</a>
+        <a href="#sloka"
+          class="pp-more-link py-2.5 px-1 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors block">🕉️
+          Daily Sloka</a>
+        <a href="#community"
+          class="pp-more-link py-2.5 px-1 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors block">🌐
+          Community</a>
+        <button id="ppMoreThoughtBtn" type="button"
+          class="w-full text-left py-2.5 px-1 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">✍️
+          Share Thought</button>
+        <button id="ppMoreJoinBtn" type="button"
+          class="w-full text-left py-2.5 px-1 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">🤝
+          Join / Volunteer</button>
+        <button id="ppMoreEditProfileBtn" type="button"
+          class="w-full text-left py-2.5 px-1 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">⚙️
+          Account Settings</button>
+        <a id="ppMoreAdminPortalBtn" href="/admin"
+          class="hidden pp-more-link py-2.5 px-1 border-b border-gold-500/8 text-sm text-gold-400 block">🛡️ Admin
+          Portal</a>
+        <button id="ppMoreLogoutBtn" type="button"
+          class="w-full text-left py-2.5 px-1 text-sm text-red-400 hover:bg-red-500/8 transition-colors rounded-lg">🚪
+          Sign Out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== FOLLOWERS / FOLLOWING LIST MODAL ===================== -->
+  <div id="followListModal"
+    class="hidden fixed inset-0 z-[113] flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm modal-backdrop">
+    <div class="glass-card modal-panel rounded-2xl w-full max-w-sm max-h-[70vh] flex flex-col overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-gold-500/10 shrink-0">
+        <p id="followListTitle" class="text-sm font-semibold text-gray-100">Followers</p>
+        <button id="closeFollowListModal" class="text-gray-400 hover:text-gold-400 text-lg leading-none">✕</button>
+      </div>
+      <div id="followListItems" class="overflow-y-auto flex-1 py-1"></div>
+      <p id="followListEmpty" class="hidden text-center text-gray-500 text-sm py-10">Nobody here yet.</p>
+    </div>
+  </div>
+
+
+  <!-- ===================== PROFILE PHOTO ZOOM VIEWER ===================== -->
+  <div id="profilePhotoZoomModal"
+    class="hidden fixed inset-0 z-[118] flex items-center justify-center px-4 bg-black/85 backdrop-blur-md modal-backdrop">
+    <button id="closeProfilePhotoZoom"
+      class="absolute top-5 right-5 w-10 h-10 rounded-full bg-black/50 hover:bg-black/75 text-gray-100 flex items-center justify-center text-2xl leading-none transition-colors">✕</button>
+    <div class="flex items-center justify-center w-full h-full max-w-lg max-h-[80vh]">
+      <img id="profilePhotoZoomImg"
+        class="hidden max-w-full max-h-full object-contain rounded-full aspect-square shadow-2xl" alt="Profile photo" />
+      <span id="profilePhotoZoomInitials"
+        class="hidden w-64 h-64 max-w-[70vw] max-h-[70vw] aspect-square rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-6xl shadow-2xl"></span>
+    </div>
+  </div>
+
+  <!-- ===================== POST DETAIL MODAL (lightbox) ===================== -->
+  <div id="postDetailModal"
+    class="hidden fixed inset-0 z-[117] flex items-center justify-center px-2 sm:px-4 bg-black/80 backdrop-blur-sm modal-backdrop">
+    <div
+      class="glass-card modal-panel rounded-2xl sm:rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-hidden relative grid md:grid-cols-2">
+      <button id="closePostDetail"
+        class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/50 text-gray-200 hover:text-gold-400 flex items-center justify-center text-lg">✕</button>
+
+      <!-- Media column — prev/next flank the image/video only -->
+      <div class="relative bg-black flex items-center justify-center max-h-[45vh] md:max-h-[92vh] overflow-hidden">
+        <button id="pdPrevBtn" title="Previous post"
+          class="hidden absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/50 hover:bg-black/75 text-gray-100 flex items-center justify-center text-xl transition-colors">‹</button>
+        <button id="pdNextBtn" title="Next post"
+          class="hidden absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/50 hover:bg-black/75 text-gray-100 flex items-center justify-center text-xl transition-colors">›</button>
+        <div id="pdMediaWrap"
+          class="flex items-center justify-center max-h-[45vh] md:max-h-[92vh] overflow-hidden w-full h-full"></div>
+      </div>
+
+      <div class="flex flex-col max-h-[47vh] md:max-h-[92vh]">
+        <div class="flex items-center gap-3 p-4 pr-14 border-b border-gold-500/15">
+          <button id="pdAuthorAvatar"
+            class="w-9 h-9 rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-sm bg-cover bg-center shrink-0"></button>
+          <div class="flex-1 min-w-0">
+            <button id="pdAuthorName"
+              class="text-sm font-medium text-gray-100 hover:text-gold-400 transition-colors truncate block text-left"></button>
+            <p id="pdPostTime" class="text-xs text-gray-500"></p>
+          </div>
+          <button id="pdFollowBtn"
+            class="hidden btn-ghost px-3.5 py-1.5 rounded-full text-xs font-medium shrink-0 whitespace-nowrap"></button>
+          <div class="relative shrink-0">
+            <button id="pdMenuBtn" title="More options"
+              class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gold-400 hover:bg-gold-500/10 transition-colors text-lg leading-none">⋮</button>
+            <div id="pdMenuDropdown"
+              class="hidden absolute right-0 top-9 z-20 w-48 glass-card rounded-xl border border-gold-500/20 shadow-2xl overflow-hidden py-1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Caption + like/comment bar + comments all scroll together as one
+             smooth column, so nothing is ever cut off on short viewports. -->
+        <div id="pdScrollArea" class="flex-1 min-h-0 overflow-y-auto">
+          <p id="pdCaption" class="hidden px-4 pt-3 pb-2 text-sm text-gray-300 leading-relaxed"></p>
+
+          <div class="flex items-center gap-5 px-4 py-3 border-b border-gold-500/15">
+            <button id="pdLikeBtn"
+              class="flex items-center gap-1.5 text-sm transition-colors text-gray-400 hover:text-red-400">
+              <span id="pdLikeIcon">🤍</span>
+              <span id="pdLikeCount" class="text-xs">0</span>
+            </button>
+            <span class="flex items-center gap-1.5 text-sm text-gray-400">
+              💬 <span id="pdCommentCount" class="text-xs">0</span>
+            </span>
+          </div>
+
+          <div id="pdCommentsList" class="space-y-4 p-4"></div>
+          <p id="pdCommentsEmpty" class="hidden text-center text-gray-500 text-sm py-6">No comments yet. Be the first to
+            share your thoughts.</p>
+        </div>
+
+        <form id="pdAddCommentForm" class="flex items-end gap-2 p-4 border-t border-gold-500/15">
+          <textarea id="pdCommentInput" rows="1" maxlength="500" placeholder="Add a comment..."
+            class="flex-1 bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2 text-sm text-gray-100 glow-input transition resize-none"></textarea>
+          <button type="submit" class="btn-primary px-4 py-2 rounded-full text-sm shrink-0">Post</button>
+        </form>
+        <p id="pdCommentLoginPrompt" class="hidden text-center text-sm text-gray-400 pb-4">
+          <a href="#" id="pdCommentLoginLink" class="text-gold-400 hover:text-gold-300 underline transition-colors">Log
+            in</a>
+          to join the conversation.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== FRIEND REQUEST TOAST ===================== -->
+  <div id="friendReqToast"
+    class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[99] glass-card rounded-2xl px-5 py-4 shadow-2xl border border-gold-500/30 flex items-center gap-4 w-[90vw] max-w-sm">
+    <span class="text-2xl shrink-0">🤝</span>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm text-gray-100 font-medium truncate" id="friendReqToastName">Someone</p>
+      <p class="text-xs text-gray-400">sent you a friend request</p>
+    </div>
+    <div class="flex gap-2 shrink-0">
+      <button id="acceptFriendReqBtn" class="btn-primary px-3 py-1 rounded-full text-xs">Accept</button>
+      <button id="rejectFriendReqBtn"
+        class="px-3 py-1 rounded-full border border-gray-500/40 text-gray-400 text-xs hover:bg-gray-500/10 transition">Reject</button>
+    </div>
+  </div>
+
+  <!-- ===================== TOAST CONTAINER (Bulletproof — always on top) ===================== -->
+  <div id="toastContainer" style="position:fixed!important;top:20px!important;right:20px!important;z-index:9999999!important;display:flex;flex-direction:column;gap:10px;max-width:360px;width:calc(100% - 40px);pointer-events:none!important;"></div>
+  <!-- Legacy #toast shim (kept so any old references don't crash) -->
+  <div id="toast" class="hidden"></div>
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="fixed top-0 w-full z-50 bg-dark-900/92 backdrop-blur-xl border-b border-gold-500/15">
+    <div class="max-w-7xl mx-auto px-5 py-3.5 flex items-center justify-between gap-4">
+
+      <!-- Logo -->
+     <!-- Logo With Golden Aura Glow -->
+      <a href="#home" class="flex items-center gap-3 shrink-0 group">
+        <span class="om-glow-badge divine-pulse text-2xl leading-none">ॐ</span>
+        <span class="font-serif text-xl font-bold gold-text tracking-wide hidden sm:block group-hover:brightness-125 transition-all">Sanatan Gyan</span>
+      </a>
+      <!-- Desktop nav -->
+     <nav class="hidden md:flex items-center gap-5 text-sm font-medium flex-1 justify-end">
+        <a href="#home" class="nav-link text-gray-300">Home</a>
+        <a href="#wisdom" class="nav-link text-gray-300">Wisdom</a>
+        <a href="#sloka" class="nav-link text-gray-300">Sloka</a>
+        <a href="#community" class="nav-link text-gray-300">Community</a>
+        <a href="#feed" class="nav-link text-gray-300">Feed</a>
+
+        <a id="adminPortalBtn" href="/admin"
+          class="hidden px-3.5 py-1.5 rounded-full border border-gold-500/50 text-gold-400 hover:bg-gold-500/10 transition text-xs font-medium">
+          Admin Portal
+        </a>
+
+        <!-- Logged-out buttons -->
+        <div id="authButtons" class="flex items-center gap-2">
+          <button id="loginNavBtn" class="btn-ghost px-4 py-1.5 rounded-full text-sm">Log In</button>
+          <button id="signupNavBtn" class="btn-primary px-4 py-1.5 rounded-full text-sm shadow">Sign Up</button>
+        </div>
+
+        <!-- Notification bell (logged-in only) -->
+        <div class="hidden relative" id="notifWrap">
+          <button id="notifBellBtn" class="relative text-xl hover:text-gold-400 transition-colors"
+            title="Notifications">
+            🔔
+            <span id="notifUnreadBadge"
+              class="hidden absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 bg-red-500 rounded-full ring-2 ring-dark-900 text-[10px] leading-4 text-white font-semibold text-center"></span>
+          </button>
+        </div>
+
+        <!-- Chat icon (logged-in only) -->
+        <button id="chatToggleBtn" class="hidden relative text-xl hover:text-gold-400 transition-colors"
+          title="Messages">
+          💬
+          <span id="chatUnreadDot"
+            class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-dark-900"></span>
+        </button>
+
+        <!-- User menu (logged-in) -->
+        <div id="userMenu" class="hidden items-center gap-2.5 relative">
+          <button id="userMenuBtn" class="flex items-center gap-2 group">
+            <span id="userAvatar"
+              class="w-9 h-9 rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-sm overflow-hidden bg-cover bg-center ring-2 ring-gold-500/30 group-hover:ring-gold-500/60 transition-all"></span>
+            <span id="userNameLabel"
+              class="text-gray-200 text-sm max-w-[90px] truncate group-hover:text-gold-400 transition-colors"></span>
+            <span class="text-gray-500 text-xs">▾</span>
+          </button>
+
+          <!-- Dropdown -->
+          <div id="userDropdown"
+            class="hidden absolute top-12 right-0 glass-card rounded-2xl py-2 w-52 shadow-2xl z-50 border border-gold-500/20">
+            <div class="px-4 py-2 border-b border-gold-500/10 mb-1">
+              <p class="text-xs text-gray-500">Signed in as</p>
+              <p id="dropdownUserName" class="text-sm font-medium text-gold-400 truncate"></p>
+            </div>
+            <button id="viewProfileNavBtn"
+              class="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gold-500/8 hover:text-gold-400 transition-colors">
+              👤 View Profile
+            </button>
+            <button id="openThoughtModalNavBtn"
+              class="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gold-500/8 hover:text-gold-400 transition-colors">
+              ✍️ Share Thought
+            </button>
+            <button id="openJoinModalNavBtn"
+              class="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gold-500/8 hover:text-gold-400 transition-colors">
+              🤝 Join / Volunteer
+            </button>
+            <div class="my-1 border-t border-gold-500/10"></div>
+            <button id="logoutBtn"
+              class="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/8 transition-colors">
+              🚪 Sign Out
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Mobile menu toggle -->
+      <button id="mobileMenuBtn" class="md:hidden text-gold-400 text-2xl leading-none">☰</button>
+    </div>
+
+    <!-- Mobile menu panel -->
+<div id="mobileMenu" class="hidden md:hidden flex-col gap-1 px-5 pb-5 bg-dark-900/98 border-t border-gold-500/10">
+      <a href="#home"
+        class="py-2.5 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">Home</a>
+      <a href="#wisdom"
+        class="py-2.5 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">Explore
+        Wisdom</a>
+      <a href="#sloka"
+        class="py-2.5 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">Daily
+        Sloka</a>
+      <a href="#community"
+        class="py-2.5 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">Community</a>
+      <a href="#feed"
+        class="py-2.5 border-b border-gold-500/8 text-sm text-gray-300 hover:text-gold-400 transition-colors">Feed</a>
+
+      <a id="mobileAdminPortalBtn" href="/admin"
+        class="hidden py-2.5 border-b border-gold-500/8 text-sm text-gold-400">Admin Portal</a>
+
+      <!-- Mobile: logged-out -->
+      <div id="mobileAuthButtons" class="flex gap-2 pt-3">
+        <button id="mobileLoginBtn" class="btn-ghost flex-1 px-4 py-2 rounded-full text-sm">Log In</button>
+        <button id="mobileSignupBtn" class="btn-primary flex-1 px-4 py-2 rounded-full text-sm">Sign Up</button>
+      </div>
+
+      <!-- Mobile: logged-in -->
+      <div id="mobileUserMenu" class="hidden pt-3 space-y-2">
+        <div class="flex items-center gap-3 p-3 glass-card rounded-xl mb-2">
+          <span id="mobileAvatar"
+            class="w-10 h-10 rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-sm bg-cover bg-center shrink-0"></span>
+          <div class="min-w-0">
+            <p class="text-xs text-gray-500">Signed in as</p>
+            <p id="mobileUserNameLabel" class="text-sm font-medium text-gold-400 truncate"></p>
+          </div>
+        </div>
+        <button id="mobileViewProfileBtn" class="btn-ghost w-full px-4 py-2.5 rounded-xl text-sm text-left">👤 View
+          Profile</button>
+        <button id="mobileLogoutBtn"
+          class="w-full px-4 py-2.5 rounded-xl border border-red-500/35 text-red-400 text-sm text-left hover:bg-red-500/8 transition-colors">
+          🚪 Sign Out
+        </button>
+      </div>
+    </div>
+
+  </header>
+
+  <!-- ===================== GLOBAL DAILY GREETING BANNER ─────────────────────
+       Single source of truth for the banner. Lives in normal document flow
+       directly below the fixed navbar. handleRouting() toggles:
+         - #globalBannerWrap classes: "gbw-home" (home) vs "gbw-page" (all other sections)
+         - #dailyGreetingBanner classes: "dgb-vertical" (home) vs "dgb-horizontal" (all other sections)
+       Only ONE #dailyGreetingBanner element exists in the DOM — do not duplicate
+       this markup inside individual sections. ==================================== -->
+  <!-- Anchor marks the banner's default (non-home) position, directly below
+       the navbar. handleRouting() moves #globalBannerWrap back here whenever
+       the route is not "home". -->
+  <div id="globalBannerAnchor"></div>
+
+  <div id="globalBannerWrap" class="gbw-page">
+    <div id="dailyGreetingBanner" class="dgb-horizontal">
+      <span id="dgbDayLabel" class="dgb-day-label"></span>
+      <div class="dgb-text-wrap">
+        <p id="dgbMantra" class="dgb-mantra"></p>
+        <p id="dgbSub" class="dgb-sub"></p>
+      </div>
+      <div id="dgbSymbol" class="dgb-symbol" title="Daily deity symbol"></div>
+    </div>
+  </div>
+
+  <!-- ===================== HERO ===================== -->
+ <!-- ===================== HERO / LANDING PAGE ===================== -->
+  <!-- ===================== HERO / LANDING PAGE ===================== -->
+ <!-- ===================== HERO / LANDING PAGE ===================== -->
+  <section id="home" class="hero-bg min-h-screen pt-24 pb-20 px-4 sm:px-6 relative overflow-hidden flex flex-col justify-start">
+    <div class="absolute top-1/4 left-10 w-96 h-96 bg-saffron-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-10 right-10 w-96 h-96 bg-gold-500/8 rounded-full blur-3xl pointer-events-none"></div>
+
+    <!-- Daily Deity Banner Slot (Deity Greeting Widget) -->
+    <div id="heroBannerSlot" class="hero-banner-slot mb-8 mx-auto w-full max-w-4xl"></div>
+
+    <div class="max-w-6xl w-full mx-auto relative z-10 flex flex-col items-center">
+      
+      <!-- 1. MAIN HERO HEADLINE & CTAS -->
+      <div class="text-center max-w-4xl w-full mb-12 fade-in">
+        <p class="devanagari text-gold-400 text-2xl md:text-3xl mb-4 tracking-wide font-medium drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
+          सत्यमेव जयते
+        </p>
+
+        <h1 class="font-serif text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight tracking-tight text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
+          Discover the <br><span class="gold-text">Eternal Wisdom</span> <br> of Sanatan Dharma
+        </h1>
+
+        <p class="text-gray-200/90 text-sm sm:text-base md:text-lg max-w-2xl mx-auto mb-8 leading-relaxed font-light drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+          A modern sanctuary for seekers — explore the Gita, Vedas, Upanishads, and timeless philosophy. Listen to shlokas with authentic pronunciation, switch languages seamlessly, and understand word-by-word meanings.
+        </p>
+
+        <!-- Primary Action Row -->
+        <div class="flex flex-wrap items-center justify-center gap-4">
+          <a href="#wisdom" class="btn-primary px-8 py-3.5 rounded-full shadow-lg shadow-saffron-500/30 text-sm font-semibold flex items-center gap-2">
+            📖 Explore Scriptures
+          </a>
+          <a href="#community" class="btn-ghost bg-dark-900/50 backdrop-blur-md px-7 py-3.5 rounded-full text-sm font-semibold flex items-center gap-2">
+            🌐 Community Thoughts
+          </a>
+          <a href="#feed" class="btn-ghost bg-dark-900/50 backdrop-blur-md px-7 py-3.5 rounded-full text-sm font-semibold flex items-center gap-2">
+            📸 Vichar Manthan
+          </a>
+          <button type="button" id="heroSharePostBtn" class="share-post-section-btn btn-ghost bg-dark-900/50 backdrop-blur-md px-6 py-3.5 rounded-full text-sm font-semibold flex items-center gap-1.5 border-gold-500/30 text-gold-400">
+            <span>＋</span> Share Post / Video
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. AAJ KI SIFARISHEIN (TODAY'S CURATED PICKS - DIRECTLY UNDER HERO) -->
+     <!-- 2. AAJ KI SIFARISHEIN (OPEN / DIRECT BACKGROUND) -->
+      <div class="w-full mb-16 fade-in" id="dailyRecSection">
+        <div class="flex items-center justify-between mb-4 border-b border-gold-500/20 pb-2.5">
+          <div>
+            <p class="text-gold-400 uppercase tracking-[0.25em] text-[10px] font-semibold mb-0.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+              Today's Daily Curations
+            </p>
+            <h3 class="font-serif text-lg sm:text-xl font-bold text-gray-100 flex items-center gap-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+              <span>🪔</span> आज की विशेष सिफारिशें
+            </h3>
+          </div>
+          <span id="dailyRecDate" class="text-xs text-gold-300 font-medium px-3.5 py-1 rounded-full bg-dark-900/50 backdrop-blur-md border border-gold-500/30 shadow-md"></span>
+        </div>
+
+        <div class="daily-rec-grid" id="dailyRecGrid">
+          <div class="daily-rec-card animate-pulse bg-dark-700/60"></div>
+          <div class="daily-rec-card animate-pulse bg-dark-700/60"></div>
+          <div class="daily-rec-card animate-pulse bg-dark-700/60"></div>
+          <div class="daily-rec-card animate-pulse bg-dark-700/60"></div>
+        </div>
+      </div>
+
+      <!-- 4. COMMUNITY & VICHAR MANTHAN (VISUAL OVERVIEW CARDS) -->
+      <div class="w-full mb-8 fade-in">
+        <div class="text-center mb-8">
+          <p class="text-gold-400 uppercase tracking-[0.25em] text-xs font-semibold mb-2">Connect &amp; Reflect</p>
+          <h2 class="font-serif text-2xl sm:text-3xl font-bold text-gray-100">
+            Community Insights &amp; <span class="gold-text">Vichar Manthan</span>
+          </h2>
+          <p class="text-gray-400 text-xs sm:text-sm max-w-xl mx-auto mt-1">
+            Engage with spiritual thinkers, write reflections, and enjoy sacred visual moments.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- Card 1: Community Insights Overview -->
+          <div class="glass-card card-hover rounded-3xl p-6 sm:p-8 border border-gold-500/25 flex flex-col justify-between relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div>
+              <div class="flex items-center gap-3 mb-4">
+                <span class="w-12 h-12 rounded-2xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-2xl">
+                  🌐
+                </span>
+                <div>
+                  <h3 class="font-serif text-lg sm:text-xl font-bold text-gray-100 group-hover:text-gold-400 transition-colors">
+                    Community Insights
+                  </h3>
+                  <p class="text-[11px] text-gold-400 font-medium">Satsang · Thought Articles · Discussions</p>
+                </div>
+              </div>
+              <p class="text-xs sm:text-sm text-gray-300/85 leading-relaxed mb-6 font-light">
+                A shared sanctuary where seekers publish spiritual essays, reflect upon Gita verses, discuss philosophy, and save inspiring articles directly to their profiles.
+              </p>
+              <div class="space-y-2 mb-6">
+                <div class="flex items-center gap-2 text-xs text-gray-400">
+                  <span class="text-gold-400">✦</span> Publish reflections across Philosophy, Gita, History &amp; General
+                </div>
+                <div class="flex items-center gap-2 text-xs text-gray-400">
+                  <span class="text-gold-400">✦</span> Like, comment &amp; bookmark thoughts to your personal collection
+                </div>
+              </div>
+            </div>
+            <div class="pt-4 border-t border-gold-500/15 flex items-center justify-between">
+              <a href="#community" class="btn-ghost px-5 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5">
+                <span>Browse Thoughts</span> <span>→</span>
+              </a>
+              <button type="button" onclick="openThoughtModal()" class="btn-primary px-5 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5">
+                <span>✍️ Share Thought</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Card 2: Vichar Manthan Media Feed Overview -->
+          <div class="glass-card card-hover rounded-3xl p-6 sm:p-8 border border-gold-500/25 flex flex-col justify-between relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-40 h-40 bg-purple-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div>
+              <div class="flex items-center gap-3 mb-4">
+                <span class="w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-2xl">
+                  📸
+                </span>
+                <div>
+                  <h3 class="font-serif text-lg sm:text-xl font-bold text-gray-100 group-hover:text-gold-400 transition-colors">
+                    विचार मंथन (Media Feed)
+                  </h3>
+                  <p class="text-[11px] text-gold-400 font-medium">दिव्य चित्र · ज्ञान प्रवाह · Reels &amp; Stories</p>
+                </div>
+              </div>
+              <p class="text-xs sm:text-sm text-gray-300/85 leading-relaxed mb-6 font-light">
+                An Instagram-style spiritual feed featuring sacred photography (दिव्य चित्र), 60-second video reels (ज्ञान प्रवाह), live follower updates, and instant post discussions.
+              </p>
+              <div class="space-y-2 mb-6">
+                <div class="flex items-center gap-2 text-xs text-gray-400">
+                  <span class="text-gold-400">✦</span> Watch video reels with hover sound &amp; fullscreen lightbox player
+                </div>
+                <div class="flex items-center gap-2 text-xs text-gray-400">
+                  <span class="text-gold-400">✦</span> Follow creators, direct message (IG DM style), and explore trending media
+                </div>
+              </div>
+            </div>
+            <div class="pt-4 border-t border-gold-500/15 flex items-center justify-between">
+              <a href="#feed" class="btn-ghost px-5 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5">
+                <span>Open Media Feed</span> <span>→</span>
+              </a>
+              <button type="button" onclick="openCreatePostModal()" class="btn-primary px-5 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5">
+                <span>＋ Post Video/Photo</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
   </section>
+  <!-- ===================== EXPLORE WISDOM ===================== -->
+  <section id="wisdom" class="py-24 px-6 bg-dark-800">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-14">
+        <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3 font-medium">Sacred Texts</p>
+        <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text">Explore Wisdom</h2>
+        <div class="flex justify-center mt-5">
+          <button type="button" id="wisdomSharePostBtn" class="share-post-section-btn btn-primary"
+            style="display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:999px; font-size:0.82rem; font-weight:600; cursor:pointer;">
+            <span style="font-size:1.1rem; line-height:1;">＋</span> Share Post / Video
+          </button>
+        </div>
+      </div>
+
+     <!-- All Scripture & Devotional Tabs -->
+      <div class="flex flex-wrap justify-center gap-2.5 sm:gap-3 mb-10 max-w-5xl mx-auto" id="wisdomTabs">
+        <button data-tab="gita" class="tab-btn active px-5 py-2 rounded-full border border-gold-500/35 text-xs sm:text-sm">📖 Bhagavad Gita</button>
+        <button data-tab="vedas" class="tab-btn px-5 py-2 rounded-full border 
+        border-gold-500/35 text-xs sm:text-sm text-gray-300">📜 Vedas</button>
+        <button data-tab="ramayan" class="tab-btn px-5 py-2 rounded-full border border-gold-500/35 text-xs sm:text-sm text-gray-300">🏹 Ramayan</button>
+        <button data-tab="mahabharat" class="tab-btn px-5 py-2 rounded-full border border-gold-500/35 text-xs sm:text-sm text-gray-300">⚔️ Mahabharat</button>
+        <button data-tab="puranas" class="tab-btn px-5 py-2 rounded-full border border-gold-500/35 text-xs sm:text-sm text-gray-300">🪔 Puranas</button>
+        <button data-tab="aarti" class="tab-btn px-5 py-2 rounded-full border border-gold-500/35 text-xs sm:text-sm text-gray-300">🪔 Aarti</button>
+        <button data-tab="bhajan" class="tab-btn px-5 py-2 rounded-full border border-gold-500/35 text-xs sm:text-sm text-gray-300">🎵 Bhajan</button>
+        <button data-tab="chalisa" class="tab-btn px-5 py-2 rounded-full border border-gold-500/35 text-xs sm:text-sm text-gray-300">🚩 Chalisa</button>
+        <button data-tab="glossary" class="tab-btn px-5 py-2 rounded-full border border-gold-500/35 text-xs sm:text-sm text-gray-300">📚 Glossary</button>
+      </div>
+      <div id="wisdomContent" class="grid md:grid-cols-2 gap-8 items-center fade-in">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== DAILY SLOKA GENERATOR ===================== -->
+  <section id="sloka" class="py-24 px-6 bg-gradient-to-b from-dark-900 to-dark-800 relative">
+    <div class="max-w-4xl mx-auto text-center">
+      <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3 font-medium">Daily Inspiration</p>
+      <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text mb-4">Daily Sloka</h2>
+      <div class="flex justify-center mb-6">
+        <button type="button" id="slokaSharePostBtn" class="share-post-section-btn btn-primary"
+          style="display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:999px; font-size:0.82rem; font-weight:600; cursor:pointer;">
+          <span style="font-size:1.1rem; line-height:1;">＋</span> Share Post / Video
+        </button>
+      </div>
+      <p class="text-gray-400 mb-12 max-w-xl mx-auto">Click below to receive a verse of timeless wisdom for your day.
+      </p>
+
+      <div class="glass-card card-hover rounded-3xl p-8 md:p-12 shadow-2xl text-left">
+        <p id="slokaSanskrit" class="devanagari text-2xl md:text-3xl text-gold-300 leading-loose mb-6 text-center"></p>
+        <p id="slokaTransliteration" class="italic text-gray-400 text-center mb-6 tracking-wide"></p>
+        <div class="border-t border-gold-500/15 pt-6 grid md:grid-cols-2 gap-6">
+          <div>
+            <p class="text-gold-500 text-[10px] uppercase tracking-[0.25em] mb-2 font-medium">English</p>
+            <p id="slokaEnglish" class="text-gray-200 leading-relaxed text-sm"></p>
+          </div>
+          <div>
+            <p class="text-gold-500 text-[10px] uppercase tracking-[0.25em] mb-2 font-medium">हिंदी</p>
+            <p id="slokaHindi" class="devanagari text-gray-200 leading-relaxed text-sm"></p>
+          </div>
+        </div>
+        <p id="slokaSource" class="text-gold-500/70 text-xs mt-6 text-center tracking-wide"></p>
+      </div>
+
+      <button id="newSlokaBtn" class="btn-primary mt-8 px-8 py-3.5 rounded-full shadow-lg text-sm">
+        ✨ Reveal Today's Sloka
+      </button>
+    </div>
+  </section>
+
+<!-- ===================== COMMUNITY INSIGHTS & THOUGHTS ===================== -->
+  <section id="community" class="py-16 sm:py-24 px-4 sm:px-6 bg-dark-800">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-10">
+        <p class="text-gold-400 uppercase tracking-[0.3em] text-xs mb-3 font-medium">Voices of the Community</p>
+        <h2 class="font-serif text-3xl md:text-5xl font-bold gold-text">Community Insights</h2>
+        <p class="text-gray-400 mt-4 max-w-2xl mx-auto leading-relaxed">
+          Reflections, essays, and insights shared by fellow seekers on this path.
+        </p>
+
+        <!-- Toggle Controls: Browse vs Share -->
+        <div class="flex items-center justify-center gap-3 mt-6">
+          <button id="toggleBrowseThoughtsBtn"
+            class="px-5 py-2 rounded-full text-xs font-semibold bg-gold-500 text-dark-900 shadow-md transition-all">
+            📖 Browse Thoughts
+          </button>
+          <button id="toggleShareThoughtBtn"
+            class="btn-ghost px-5 py-2 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5">
+            <span>✍️</span> Share Your Thought
+          </button>
+        </div>
+      </div>
+
+      <!-- Embedded Collapsible Share Thought Form -->
+      <div id="embeddedThoughtFormWrap" class="hidden mb-12 max-w-3xl mx-auto fade-in">
+        <form id="thoughtForm" class="glass-card rounded-3xl p-6 sm:p-8 grid md:grid-cols-2 gap-4 border border-gold-500/30">
+          <div class="md:col-span-2 flex justify-between items-center pb-2 border-b border-gold-500/15">
+            <h3 class="font-serif text-lg font-bold gold-text">Share Your Reflection</h3>
+            <button type="button" id="closeThoughtFormBtn" class="text-gray-400 hover:text-gold-400 text-sm">✕ Close</button>
+          </div>
+          <div id="thoughtGuestFields" class="md:col-span-2 grid md:grid-cols-2 gap-4">
+            <div class="md:col-span-1">
+              <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-1">Author Name</label>
+              <input type="text" name="authorName" id="thoughtAuthorName" required minlength="2" maxlength="100"
+                class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition"
+                placeholder="Your name" />
+            </div>
+            <div class="md:col-span-1">
+              <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-1">Email Address</label>
+              <input type="email" name="email" id="thoughtEmail" required
+                class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition"
+                placeholder="you@example.com" />
+            </div>
+          </div>
+          <p id="thoughtLoggedInAs" class="hidden md:col-span-2 text-xs text-gold-400/80 -mt-1"></p>
+          <div class="md:col-span-2">
+            <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-1">Title</label>
+            <input type="text" name="title" required minlength="3" maxlength="200"
+              class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition"
+              placeholder="Title of your thought or article" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-1">Category</label>
+            <select name="category" required
+              class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition">
+              <option value="" disabled selected>Select a category</option>
+              <option value="Philosophy">Philosophy</option>
+              <option value="Gita">Gita</option>
+              <option value="History">History</option>
+              <option value="General">General</option>
+            </select>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-xs font-medium text-gold-400 uppercase tracking-wider mb-1">Your Thought / Article</label>
+            <textarea name="content" required minlength="20" maxlength="10000" rows="5"
+              class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition resize-none"
+              placeholder="Write your reflection here…"></textarea>
+          </div>
+          <div class="md:col-span-2">
+            <button type="submit" id="thoughtSubmitBtn"
+              class="btn-primary w-full py-3 rounded-full shadow-lg text-sm font-semibold">Publish to Community</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="communityGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      <div class="flex justify-center mt-8">
+        <button id="loadMoreThoughtsBtn"
+          class="hidden px-6 py-2.5 rounded-full border border-gold-500/40 text-gold-400 text-sm font-medium hover:bg-gold-500/10 transition-colors duration-200">
+          Load More Thoughts
+        </button>
+      </div>
+      <p id="communityEmptyMsg" class="hidden text-center text-gray-500 py-10">No thoughts yet. Be the first to share one!</p>
+      <p id="communityLoadingMsg" class="text-center text-gray-500 py-10 flex items-center justify-center gap-2">
+        <span
+          class="inline-block w-4 h-4 border-2 border-gold-500/40 border-t-gold-500 rounded-full animate-spin"></span>
+        Loading community thoughts…
+      </p>
+    </div>
+  </section>
+  <!-- ===================== FEED (VICHAR MANTHAN) ===================== -->
+  <section id="feed" class="py-10 sm:py-16 px-3 sm:px-8 bg-gradient-to-b from-dark-900 to-dark-800 w-full">
+    <div class="max-w-7xl mx-auto w-full">
+
+      <!-- ── VICHAR MANTHAN HEADER ── -->
+      <div class="feed-section-header">
+        <div class="feed-section-header-left">
+          <p class="feed-section-eyebrow">Moments &amp; Reflections</p>
+          <h2 class="feed-section-title">विचार मंथन</h2>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <!-- Notification bell (mobile) -->
+          <button id="mobFeedNotifBtn" title="Notifications" class="mob-feed-notif-btn auth-hide"
+            onclick="document.getElementById('notifBellBtn')?.click()">
+            🔔
+            <span id="mobFeedNotifDot" class="hidden mob-feed-notif-dot"></span>
+          </button>
+          <!-- + New Post — primary, top-right, shown when logged in -->
+          <button id="createPostBtn" class="btn-primary"
+            style="display: none; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; cursor: pointer;">
+            <span style="font-size:1.1rem; line-height:1;">＋</span> Share Post / Video
+          </button>
+        </div>
+      </div>
+
+      <p id="feedLoginPrompt" class="hidden text-center text-gray-500 py-4 glass-card rounded-2xl text-sm mb-4">
+        <a href="#" id="feedLoginLink" class="text-gold-400 hover:text-gold-300 underline transition-colors">Log in</a>
+        to share and interact.
+      </p>
+      <!-- Feed / Explore top-level tabs -->
+      <div class="flex items-center gap-2 mb-4 border-b border-gold-500/10">
+        <button type="button" id="feedTopTabBtn"
+          class="feed-top-tab active px-4 py-2 text-sm font-semibold text-gold-400 border-b-2 border-gold-500 transition-colors">Feed</button>
+        <button type="button" id="exploreTopTabBtn"
+          class="feed-top-tab px-4 py-2 text-sm font-semibold text-gray-400 border-b-2 border-transparent hover:text-gold-400 transition-colors">🧭
+          Explore</button>
+      </div>
+
+      <!-- ── FEED TAB CONTENT ── -->
+      <div id="feedTabContent">
+
+        <!-- Search + filter pills -->
+        <div class="feed-controls">
+          <div class="feed-search-wrap">
+            <span class="search-icon">🔍</span>
+            <input id="feedSearchInput" type="text" placeholder="Search by name or caption…" class="feed-search-input"
+              autocomplete="off" />
+          </div>
+          <div class="feed-filter-pills">
+            <button type="button" data-filter="all" class="feed-filter-tab feed-filter-pill active">All</button>
+            <button type="button" data-filter="photo" class="feed-filter-tab feed-filter-pill">📸 Photos</button>
+            <button type="button" data-filter="reel" class="feed-filter-tab feed-filter-pill">🎬 Video</button>
+          </div>
+        </div>
+
+        <!-- Masonry feed grid -->
+        <div id="feedList" class="feed-grid"></div>
+        <p id="feedEmptyMsg" class="hidden text-center text-gray-500 py-10">No posts yet. Be the first to share!</p>
+        <p id="feedLoadingMsg" class="text-center text-gray-500 py-10 flex items-center justify-center gap-2">
+          <span
+            class="inline-block w-4 h-4 border-2 border-gold-500/40 border-t-gold-500 rounded-full animate-spin"></span>
+          Loading feed…
+        </p>
+        <button id="loadMorePostsBtn" class="hidden mx-auto mt-6 block btn-ghost px-6 py-2 rounded-full text-sm">Load
+          More</button>
+      </div>
+
+      <!-- ── EXPLORE TAB CONTENT ── -->
+      <div id="exploreTabContent" class="hidden">
+        <div class="ig-explore-grid" id="exploreGrid"></div>
+        <p id="exploreEmptyMsg" class="hidden text-center text-gray-500 py-10">No posts to explore yet.</p>
+        <p id="exploreLoadingMsg" class="text-center text-gray-500 py-10 flex items-center justify-center gap-2">
+          <span
+            class="inline-block w-4 h-4 border-2 border-gold-500/40 border-t-gold-500 rounded-full animate-spin"></span>
+          Loading explore…
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CREATE POST MODAL ===================== -->
+  <div id="createPostModal"
+    class="hidden fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm modal-backdrop">
+    <div class="glass-card modal-panel rounded-2xl sm:rounded-3xl p-6 sm:p-8 w-full max-w-md relative">
+      <button id="closeCreatePostModal"
+        class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 transition-colors text-xl">✕</button>
+      <h3 class="font-serif text-xl font-bold gold-text mb-6">📸 Share दिव्य चित्र / ज्ञान प्रवाह</h3>
+
+      <form id="createPostForm" class="space-y-4">
+        <input type="file" id="postMediaInput" name="media" accept="image/*,video/*" required
+          class="w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gold-500/20 file:text-gold-400 hover:file:bg-gold-500/30 file:cursor-pointer cursor-pointer file:transition" />
+        <div id="postMediaPreviewWrap" class="hidden rounded-xl overflow-hidden border border-gold-500/20">
+          <img id="postImagePreview" class="hidden w-full max-h-64 object-cover" />
+          <video id="postVideoPreview" class="hidden w-full max-h-64" controls></video>
+        </div>
+        <p id="postMediaError" class="hidden text-xs text-red-400 bg-red-500/10 rounded-lg px-3 py-2"></p>
+        <textarea name="caption" maxlength="500" rows="3" placeholder="Write a caption…"
+          class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-3 text-gray-100 text-sm glow-input transition resize-none"></textarea>
+        <button type="submit" id="createPostSubmitBtn"
+          class="btn-primary w-full py-3 rounded-full shadow-lg text-sm">Share Post</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== INSTAGRAM DM PAGE ===================== -->
+  <div id="igDmPage">
+    <!-- Left sidebar: conversation list -->
+    <div class="ig-dm-sidebar" id="igDmSidebar">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gold-500/12">
+        <div class="flex items-center gap-2">
+          <button id="igDmCloseBtn" class="text-gray-400 hover:text-gold-400 transition-colors text-lg mr-1">←</button>
+          <h3 class="font-serif text-base font-bold gold-text">Messages</h3>
+        </div>
+        <div class="flex items-center gap-1">
+          <button id="igDmNewBtn" class="ig-dm-icon-btn" title="New message" aria-label="Search users to start a new message">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+          </button>
+          <button id="igDmGroupBtn" class="ig-dm-icon-btn" title="Create group" aria-label="Create a group chat">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div id="igDmConvoList" class="flex-1 overflow-y-auto"></div>
+      <p id="igDmConvoEmpty" class="hidden text-center text-gray-500 text-sm py-10 px-4">
+        No conversations yet.<br /><span class="text-xs text-gray-600">Message from someone's profile.</span>
+      </p>
+    </div>
+
+    <!-- Right: active thread or empty state -->
+    <div class="ig-dm-main" id="igDmMain">
+      <!-- Empty state -->
+      <div id="igDmEmptyState" class="flex flex-col items-center justify-center flex-1 gap-4 h-full">
+        <div class="w-20 h-20 rounded-full border-2 border-gold-500/30 flex items-center justify-center text-4xl">💬
+        </div>
+        <p class="font-serif text-lg font-bold text-gray-100">Your Messages</p>
+        <p class="text-sm text-gray-500">Send a message to start a chat.</p>
+      </div>
+
+      <!-- Thread view -->
+      <div id="igDmThread" class="hidden flex-col h-full">
+        <!-- Thread header -->
+        <div class="flex items-center gap-3 px-4 py-3 border-b border-gold-500/12">
+          <button id="igDmBackBtn" class="md:hidden text-gray-400 hover:text-gold-400 text-xl w-8">←</button>
+          <span id="igDmThreadAvatar"
+            class="w-9 h-9 rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-sm bg-cover bg-center shrink-0"></span>
+          <div class="flex-1 min-w-0">
+            <p id="igDmThreadName" class="text-gray-100 font-semibold text-sm truncate"></p>
+            <p id="igDmThreadStatus" class="text-xs text-gray-500">Private conversation</p>
+          </div>
+          <!-- Chat options -->
+          <div class="relative shrink-0">
+            <button id="igChatOptionsBtn"
+              class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gold-400 hover:bg-gold-500/10 transition-colors text-lg">⋮</button>
+            <div id="igChatOptionsDropdown"
+              class="hidden absolute right-0 top-9 z-[9999] w-48 glass-card rounded-xl border border-gold-500/20 shadow-2xl overflow-hidden py-1">
+              <button id="igChatDeleteConvoBtn"
+                class="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors">🗑️
+                Delete Conversation</button>
+              <button id="igChatBlockUserBtn"
+                class="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gold-500/8 hover:text-gold-400 transition-colors">🚫
+                Block User</button>
+              <button id="igChatUnblockUserBtn"
+                class="hidden w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gold-500/8 hover:text-gold-400 transition-colors">✅
+                Unblock User</button>
+            </div>
+          </div>
+        </div>
+        <!-- Messages -->
+        <div id="igDmMessagesList" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+        <!-- Input -->
+        <form id="igDmSendForm" class="flex items-end gap-2 px-4 py-3 border-t border-gold-500/12">
+          <textarea id="igDmInput" rows="1" maxlength="2000" placeholder="Message…"
+            class="flex-1 bg-dark-700/60 border border-gold-500/25 rounded-2xl px-4 py-2.5 text-sm text-gray-100 glow-input transition resize-none"></textarea>
+          <button type="submit" class="btn-primary px-4 py-2.5 rounded-full text-sm shrink-0 flex items-center gap-1.5">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== USER SEARCH MODAL (New Message) ===================== -->
+  <div id="userSearchModal"
+    class="hidden fixed inset-0 z-[120] flex items-start sm:items-center justify-center px-4 pt-20 sm:pt-4 bg-black/70 backdrop-blur-sm modal-backdrop">
+    <div class="glass-card modal-panel rounded-2xl sm:rounded-3xl p-6 w-full max-w-md relative max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-serif text-lg font-bold gold-text">New Message</h3>
+        <button id="closeUserSearchModal"
+          class="ig-dm-icon-btn" aria-label="Close">✕</button>
+      </div>
+      <input type="text" id="userSearchInput" placeholder="Search by username or name…" autocomplete="off"
+        class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-sm text-gray-100 glow-input transition mb-3" />
+      <div id="userSearchResults" class="flex-1 overflow-y-auto space-y-1"></div>
+      <p id="userSearchEmpty" class="hidden text-center text-gray-500 text-sm py-8">No users found.</p>
+      <p id="userSearchHint" class="text-center text-gray-500 text-sm py-8">Start typing to find someone to message.</p>
+    </div>
+  </div>
+
+  <!-- ===================== GROUP CHAT "COMING SOON" MODAL ===================== -->
+  <div id="groupChatModal"
+    class="hidden fixed inset-0 z-[120] flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm modal-backdrop">
+    <div class="glass-card modal-panel rounded-2xl sm:rounded-3xl p-8 w-full max-w-sm relative text-center">
+      <button id="closeGroupChatModal"
+        class="absolute top-4 right-4 text-gray-400 hover:text-gold-400 transition-colors text-xl">✕</button>
+      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gold-500/10 border border-gold-500/25 flex items-center justify-center text-3xl">
+        👥
+      </div>
+      <h3 class="font-serif text-xl font-bold gold-text mb-2">Group Chat</h3>
+      <p class="text-sm text-gray-400 mb-6">Group chat is coming soon! This feature will be available in a future
+        update.</p>
+      <button id="groupChatModalOkBtn" class="btn-primary w-full py-3 rounded-full shadow-lg text-sm">Got it</button>
+    </div>
+  </div>
+
+  <!-- ===================== LEGACY CHAT DRAWER (kept for compatibility) ===================== -->
+  <div id="chatDrawer" class="hidden fixed inset-0 z-[115] flex justify-end">
+    <div id="chatOverlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div id="chatPanel"
+      class="relative w-full sm:w-[420px] h-full bg-dark-800 border-l border-gold-500/18 flex flex-col shadow-2xl">
+      <div id="chatListView" class="flex flex-col h-full">
+        <div class="flex items-center justify-between p-4 border-b border-gold-500/15">
+          <h3 class="font-serif text-lg font-bold gold-text">Messages</h3>
+          <button id="closeChatDrawer" class="text-gray-400 hover:text-gold-400 transition-colors text-xl">✕</button>
+        </div>
+        <div id="conversationsList" class="flex-1 overflow-y-auto"></div>
+        <p id="conversationsEmptyMsg" class="hidden text-center text-gray-500 text-sm py-10 px-4">
+          No conversations yet.<br /><span class="text-xs text-gray-600">Start a chat from someone's profile.</span>
+        </p>
+      </div>
+      <div id="chatThreadView" class="hidden flex-col h-full">
+        <div class="flex items-center gap-3 p-4 border-b border-gold-500/15">
+          <button id="backToConversations"
+            class="text-gray-400 hover:text-gold-400 transition-colors text-xl w-8 text-center">←</button>
+          <span id="chatThreadAvatar"
+            class="w-9 h-9 rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-sm bg-cover bg-center shrink-0"></span>
+          <div class="flex-1 min-w-0">
+            <p id="chatThreadName" class="text-gray-100 font-medium truncate text-sm"></p>
+            <p id="chatThreadStatus" class="text-xs text-gray-500"></p>
+          </div>
+          <div class="relative shrink-0">
+            <button id="chatOptionsBtn" title="Chat options"
+              class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gold-400 hover:bg-gold-500/10 transition-colors text-lg leading-none">⋮</button>
+            <div id="chatOptionsDropdown"
+              class="hidden absolute right-0 top-9 z-[9999] w-48 glass-card rounded-xl border border-gold-500/20 shadow-2xl overflow-hidden py-1">
+              <button id="chatDeleteConvoBtn"
+                class="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors">🗑️
+                Delete Conversation</button>
+              <button id="chatBlockUserBtn"
+                class="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gold-500/8 hover:text-gold-400 transition-colors">🚫
+                Block User</button>
+              <button id="chatUnblockUserBtn"
+                class="hidden w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gold-500/8 hover:text-gold-400 transition-colors">✅
+                Unblock User</button>
+            </div>
+          </div>
+          <button id="closeChatDrawer2" class="text-gray-400 hover:text-gold-400 transition-colors text-xl">✕</button>
+        </div>
+        <div id="chatMessagesList" class="flex-1 overflow-y-auto p-4 space-y-3"
+          style="min-height:0;max-height:calc(100vh - 180px)"></div>
+        <form id="chatSendForm" class="flex items-end gap-2 p-4 border-t border-gold-500/15">
+          <textarea id="chatMessageInput" rows="1" maxlength="2000" placeholder="Type a message…"
+            class="flex-1 bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2 text-sm text-gray-100 glow-input transition resize-none"></textarea>
+          <button type="submit" class="btn-primary px-4 py-2 rounded-full text-sm shrink-0">Send</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== PRESENT YOUR THOUGHT ===================== -->
   
-  <footer class="bg-dark-900 border-t border-gold-500/20 py-10 px-6 text-center">
-    <p class="font-serif text-xl gold-text mb-2">🕉️ Sanatan Gyan</p>
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="bg-dark-900 border-t border-gold-500/15 py-12 px-6 text-center">
+    <p class="font-serif text-2xl gold-text mb-3">🕉️ Sanatan Gyan</p>
     <p class="text-gray-500 text-sm">© 2026 Sanatan Gyan. All rights reserved. Wisdom for the timeless seeker.</p>
   </footer>
 
+
+  <!-- ===================== JAVASCRIPT ===================== -->
+  <script src="app.js"></script>
+  <script src="mobile.js"></script>
   <script>
-  
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const mobileMenu = document.getElementById('mobileMenu');
-    mobileMenuBtn.addEventListener('click', () => {
-      mobileMenu.classList.toggle('hidden');
-      mobileMenu.classList.toggle('flex');
-    });
-    document.querySelectorAll('#mobileMenu a').forEach(link => {
-      link.addEventListener('click', () => {
-        mobileMenu.classList.add('hidden');
-        mobileMenu.classList.remove('flex');
-      });
-    });
-
-    // ===================== TOAST =====================
-    function showToast(message, type = 'success') {
-      const toast = document.getElementById('toast');
-      const toastBox = document.getElementById('toastBox');
-      const toastIcon = document.getElementById('toastIcon');
-      const toastMessage = document.getElementById('toastMessage');
-
-      toastMessage.textContent = message;
-      if (type === 'success') {
-        toastIcon.textContent = '✅';
-        toastBox.classList.remove('border-red-500');
-        toastBox.classList.add('border-gold-500');
-      } else {
-        toastIcon.textContent = '⚠️';
-        toastBox.classList.remove('border-gold-500');
-        toastBox.classList.add('border-red-500');
-      }
-
-      toast.classList.remove('translate-x-[150%]', 'opacity-0');
-      toast.classList.add('translate-x-0', 'opacity-100');
-
-      setTimeout(() => {
-        toast.classList.add('translate-x-[150%]', 'opacity-0');
-        toast.classList.remove('translate-x-0', 'opacity-100');
-      }, 4500);
+  // ── Google Sign-In / Sign-Up buttons ────────────────────────────────
+  // Uses Google's own renderButton() (not a custom button + prompt()).
+  // prompt() only triggers One Tap, which depends on FedCM and has NO
+  // fallback — when FedCM is unavailable/blocked (a common browser/site
+  // setting state) it just does nothing, silently. renderButton()'s
+  // click handler runs Google's full sign-in flow and automatically
+  // falls back to the classic OAuth popup when One Tap can't run, so it
+  // keeps working in exactly the situation that broke the custom button.
+  function renderGoogleButtons() {
+    if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+      // GSI script (accounts.google.com/gsi/client) hasn't finished
+      // loading yet — retry shortly instead of giving up silently.
+      setTimeout(renderGoogleButtons, 200);
+      return;
     }
-
-   
-    const wisdomData = {
-      gita: {
-        title: 'Bhagavad Gita',
-        image: 'gita.png',
-        desc: 'The Bhagavad Gita is a 700-verse dialogue between Prince Arjuna and Lord Krishna on the battlefield of Kurukshetra. It addresses the moral and philosophical dilemmas of duty (dharma), righteous action (karma yoga), devotion (bhakti yoga), and the path to self-realization (jnana yoga), making it one of the most revered spiritual texts in the world.',
-        points: ['18 Chapters, 700 Verses', 'Core of Karma, Bhakti & Jnana Yoga', 'Dialogue between Krishna & Arjuna']
-      },
-      vedas: {
-        title: 'The Vedas',
-        image: 'vedas.png',
-        desc: 'The Vedas are the oldest sacred texts of Sanatan Dharma, composed of four collections — Rigveda, Yajurveda, Samaveda, and Atharvaveda. They contain hymns, rituals, philosophy, and cosmological insights that form the bedrock of Vedic civilization and spiritual practice.',
-        points: ['Rigveda, Yajurveda, Samaveda, Atharvaveda', 'Oldest scriptures of Sanatan Dharma', 'Foundation of ritual & philosophical thought']
-      },
-      upanishads: {
-        title: 'The Upanishads',
-        image: 'upanishad.png',
-        desc: 'The Upanishads are philosophical texts that form the concluding portion of the Vedas (Vedanta). They explore the nature of ultimate reality (Brahman), the individual self (Atman), and the union between the two — laying the intellectual foundation for later Indian philosophical schools.',
-        points: ['108 principal Upanishads', 'Explores Atman & Brahman', 'Foundation of Vedanta philosophy']
-      },
-      philosophy: {
-        title: 'Sanatan Philosophy',
-        image: 'philosophy.png',
-        desc: 'Sanatan philosophy encompasses six classical schools of thought (Shad Darshana) — Nyaya, Vaisheshika, Samkhya, Yoga, Mimamsa, and Vedanta — each offering distinct approaches to understanding reality, knowledge, ethics, and liberation (moksha).',
-        points: ['Shad Darshana: Six schools of thought', 'Concepts of Dharma, Karma & Moksha', 'A living tradition of inquiry']
-      }
-    };
-
-    function renderWisdomTab(tab) {
-      const data = wisdomData[tab];
-      const container = document.getElementById('wisdomContent');
-      container.classList.remove('fade-in');
-      void container.offsetWidth; // reflow to restart animation
-      container.classList.add('fade-in');
-
-      container.innerHTML = `
-      <div class="rounded-3xl overflow-hidden shadow-2xl">
-        <img src="${data.image}" alt="${data.title}" class="w-full h-80 object-cover" />
-      </div>
-      <div class="glass-card rounded-3xl p-8">
-        <h3 class="font-serif text-2xl font-bold gold-text mb-4">${data.title}</h3>
-        <p class="text-gray-300 leading-relaxed mb-6">${data.desc}</p>
-        <ul class="space-y-2">
-          ${data.points.map(p => `<li class="flex items-center gap-2 text-sm text-gray-300"><span class="text-gold-400">✦</span> ${p}</li>`).join('')}
-        </ul>
-      </div>
-    `;
-    }
-
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderWisdomTab(btn.dataset.tab);
-      });
-    });
-    renderWisdomTab('gita');
-
-    
-    const slokas = [
-      {
-        sanskrit: 'कर्मण्येवाधिकारस्ते मा फलेषु कदाचन। मा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि॥',
-        transliteration: 'karmaṇy-evādhikāras te mā phaleṣu kadācana',
-        english: 'You have the right to perform your duty, but never to the fruits of your actions. Let not the fruits of action be your motive, nor let your attachment be to inaction.',
-        hindi: 'तुम्हारा अधिकार केवल कर्म करने में है, फल में कभी नहीं। कर्मफल की इच्छा से कर्म मत करो, और न ही कर्म न करने में आसक्त होओ।',
-        source: 'Bhagavad Gita, Chapter 2, Verse 47'
-      },
-      {
-        sanskrit: 'योगः कर्मसु कौशलम्।',
-        transliteration: 'yogaḥ karmasu kauśalam',
-        english: 'Yoga is skill and excellence in action.',
-        hindi: 'योग ही कर्मों में कुशलता है।',
-        source: 'Bhagavad Gita, Chapter 2, Verse 50'
-      },
-      {
-        sanskrit: 'असतो मा सद्गमय। तमसो मा ज्योतिर्गमय। मृत्योर्मा अमृतं गमय॥',
-        transliteration: 'asato mā sad gamaya, tamaso mā jyotir gamaya, mṛtyor mā amṛtaṁ gamaya',
-        english: 'Lead me from untruth to truth, from darkness to light, from death to immortality.',
-        hindi: 'हमें असत्य से सत्य की ओर ले चलो, अंधकार से प्रकाश की ओर ले चलो, मृत्यु से अमरता की ओर ले चलो।',
-        source: 'Brihadaranyaka Upanishad, 1.3.28'
-      },
-      {
-        sanskrit: 'वसुधैव कुटुम्बकम्।',
-        transliteration: 'vasudhaiva kuṭumbakam',
-        english: 'The whole world is one family.',
-        hindi: 'सारा संसार एक परिवार है।',
-        source: 'Maha Upanishad, Chapter 6, Verse 71'
-      },
-      {
-        sanskrit: 'सत्यं वद। धर्मं चर।',
-        transliteration: 'satyaṁ vada, dharmaṁ cara',
-        english: 'Speak the truth. Follow the path of righteousness.',
-        hindi: 'सत्य बोलो। धर्म का पालन करो।',
-        source: 'Taittiriya Upanishad, 1.11.1'
-      },
-      {
-        sanskrit: 'अहिंसा परमो धर्मः।',
-        transliteration: 'ahiṁsā paramo dharmaḥ',
-        english: 'Non-violence is the highest duty/virtue.',
-        hindi: 'अहिंसा सबसे बड़ा धर्म है।',
-        source: 'Mahabharata, Anushasana Parva'
-      },
-      {
-        sanskrit: 'सर्वे भवन्तु सुखिनः सर्वे सन्तु निरामयाः।',
-        transliteration: 'sarve bhavantu sukhinaḥ sarve santu nirāmayāḥ',
-        english: 'May all beings be happy, may all beings be free from illness.',
-        hindi: 'सभी सुखी हों, सभी रोगमुक्त हों।',
-        source: 'Brihadaranyaka Upanishad (Peace Invocation)'
-      },
-      {
-        sanskrit: 'उद्धरेदात्मनात्मानं नात्मानमवसादयेत्। आत्मैव ह्यात्मनो बन्धुरात्मैव रिपुरात्मनः॥',
-        transliteration: 'uddhared ātmanātmānaṁ nātmānam avasādayet',
-        english: 'One must elevate oneself by one\'s own self; let not the self degrade itself. The self alone is the friend of the self, and the self alone is the enemy of the self.',
-        hindi: 'मनुष्य को स्वयं अपने द्वारा अपना उद्धार करना चाहिए, स्वयं को अधोगति में नहीं ले जाना चाहिए। आत्मा ही आत्मा का मित्र है और आत्मा ही आत्मा का शत्रु है।',
-        source: 'Bhagavad Gita, Chapter 6, Verse 5'
-      }
-    ];
-
-    function displayRandomSloka() {
-      const sloka = slokas[Math.floor(Math.random() * slokas.length)];
-      document.getElementById('slokaSanskrit').textContent = sloka.sanskrit;
-      document.getElementById('slokaTransliteration').textContent = sloka.transliteration;
-      document.getElementById('slokaEnglish').textContent = sloka.english;
-      document.getElementById('slokaHindi').textContent = sloka.hindi;
-      document.getElementById('slokaSource').textContent = `— ${sloka.source}`;
-    }
-    document.getElementById('newSlokaBtn').addEventListener('click', displayRandomSloka);
-    displayRandomSloka(); // Show one on load
-
-  
-    const contactForm = document.getElementById('contactForm');
-    contactForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById('contactSubmitBtn');
-      const originalText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Submitting...';
-
-      const formData = new FormData(contactForm);
-      const payload = Object.fromEntries(formData.entries());
-
+    [
+      { id: 'googleLoginBtnContainer', text: 'continue_with' },
+      { id: 'googleSignupBtnContainer', text: 'signup_with' }
+    ].forEach(({ id, text }) => {
+      const el = document.getElementById(id);
+      if (!el || el.childElementCount > 0) return; // already rendered
+      const width = Math.min(Math.max(el.parentElement?.offsetWidth || 320, 200), 400);
       try {
-        const res = await fetch('/api/contact', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+        google.accounts.id.renderButton(el, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          text,
+          shape: 'rectangular',
+          logo_alignment: 'left',
+          width
         });
-        const data = await res.json();
-
-        if (res.ok && data.success) {
-          showToast(data.message, 'success');
-          contactForm.reset();
-        } else {
-          showToast(data.message || 'Something went wrong. Please try again.', 'error');
-        }
       } catch (err) {
-        showToast('Network error. Please check your connection and try again.', 'error');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = originalText;
+        console.error('[GoogleAuth] renderButton failed for #' + id + ':', err);
+        if (typeof showToast === 'function') {
+          showToast('Google Sign-In button failed to load. Please refresh the page.', 'error');
+        }
       }
     });
+  }
+  renderGoogleButtons();
+  // Re-render whenever the modal (or a tab inside it) becomes visible,
+  // in case a container's width wasn't known yet while still hidden.
+  document.getElementById('loginNavBtn')?.addEventListener('click', renderGoogleButtons);
+  document.getElementById('signupNavBtn')?.addEventListener('click', renderGoogleButtons);
+  document.getElementById('mobileLoginBtn')?.addEventListener('click', renderGoogleButtons);
+  document.getElementById('mobileSignupBtn')?.addEventListener('click', renderGoogleButtons);
+  document.querySelectorAll('.auth-tab-btn').forEach(b => b.addEventListener('click', renderGoogleButtons));
 
-    
-    const thoughtForm = document.getElementById('thoughtForm');
-    thoughtForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById('thoughtSubmitBtn');
-      const originalText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Submitting...';
+  async function handleGoogleLogin(response) {
+    try {
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: response.credential })
+      });
 
-      const formData = new FormData(thoughtForm);
-      const payload = Object.fromEntries(formData.entries());
-
-      try {
-        const res = await fetch('/api/thoughts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-
-        if (res.ok && data.success) {
-          showToast(data.message, 'success');
-          thoughtForm.reset();
+      const data = await res.json();
+      if (data.success) {
+        // app.js ke native helper se save karein
+        if (typeof saveAuth === 'function') {
+          saveAuth(data.token, data.user);
         } else {
-          showToast(data.message || 'Something went wrong. Please try again.', 'error');
+          localStorage.setItem('sg_token', data.token);
+          localStorage.setItem('sg_user', JSON.stringify(data.user));
         }
-      } catch (err) {
-        showToast('Network error. Please check your connection and try again.', 'error');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = originalText;
-      }
-    });
 
-const AUTH_TOKEN_KEY = 'sg_token';
-const AUTH_USER_KEY = 'sg_user';
+        // UI instantly update karein
+        if (typeof updateAuthUI === 'function') {
+          updateAuthUI();
+        }
 
+        if (typeof showToast === 'function') {
+          showToast(data.message || 'Login Successful!', 'success');
+        }
 
-function getToken() { return localStorage.getItem(AUTH_TOKEN_KEY); }
-function getStoredUser() {
-  const raw = localStorage.getItem(AUTH_USER_KEY);
-  return raw ? JSON.parse(raw) : null;
-}
-function saveAuth(token, user) {
-  localStorage.setItem(AUTH_TOKEN_KEY, token);
-  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-}
-function clearAuth() {
-  localStorage.removeItem(AUTH_TOKEN_KEY);
-  localStorage.removeItem(AUTH_USER_KEY);
-}
-function getInitials(name) {
-  return name.trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join('');
-}
+        const authModal = document.getElementById('authModal');
+        if (authModal) authModal.classList.add('hidden');
 
-function updateAuthUI() {
-  const user = getStoredUser();
-  const authButtons = document.getElementById('authButtons');
-  const userMenu = document.getElementById('userMenu');
-  const mobileAuthButtons = document.getElementById('mobileAuthButtons');
-  const mobileUserMenu = document.getElementById('mobileUserMenu');
-  const adminPortalBtn = document.getElementById('adminPortalBtn');
-  const mobileAdminPortalBtn = document.getElementById('mobileAdminPortalBtn');
+        // Community thoughts & feed reload karein
+        if (typeof loadCommunityThoughts === 'function') loadCommunityThoughts();
+        if (typeof loadFeed === 'function') loadFeed(true);
 
-  if (user) {
-    authButtons.classList.add('hidden');
-    userMenu.classList.remove('hidden');
-    userMenu.classList.add('flex');
-    mobileAuthButtons.classList.add('hidden');
-    mobileUserMenu.classList.remove('hidden');
-
-    const avatarEl = document.getElementById('userAvatar');
-    avatarEl.textContent = getInitials(user.name);
-    avatarEl.style.backgroundColor = user.avatarColor || '#d4a437';
-    document.getElementById('userNameLabel').textContent = user.name;
-    document.getElementById('mobileUserNameLabel').textContent = user.name;
-
-   
-    const isAdmin = user.isAdmin === true;
-    adminPortalBtn.classList.toggle('hidden', !isAdmin);
-    mobileAdminPortalBtn.classList.toggle('hidden', !isAdmin);
-  } else {
-    authButtons.classList.remove('hidden');
-    userMenu.classList.add('hidden');
-    userMenu.classList.remove('flex');
-    mobileAuthButtons.classList.remove('hidden');
-    mobileUserMenu.classList.add('hidden');
-
-  
-    adminPortalBtn.classList.add('hidden');
-    mobileAdminPortalBtn.classList.add('hidden');
-  }
-}
-updateAuthUI();
-
-// Auth modal open/close
-const authModal = document.getElementById('authModal');
-function openAuthModal(tab = 'login') {
-  authModal.classList.remove('hidden');
-  document.querySelectorAll('.auth-tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`[data-authtab="${tab}"]`).classList.add('active');
-  document.getElementById('loginFormAuth').classList.toggle('hidden', tab !== 'login');
-  document.getElementById('signupFormAuth').classList.toggle('hidden', tab !== 'signup');
-}
-function closeAuthModal() { authModal.classList.add('hidden'); }
-
-document.getElementById('loginNavBtn').addEventListener('click', () => openAuthModal('login'));
-document.getElementById('signupNavBtn').addEventListener('click', () => openAuthModal('signup'));
-document.getElementById('mobileLoginBtn').addEventListener('click', () => { mobileMenu.classList.add('hidden'); openAuthModal('login'); });
-document.getElementById('mobileSignupBtn').addEventListener('click', () => { mobileMenu.classList.add('hidden'); openAuthModal('signup'); });
-document.getElementById('closeAuthModal').addEventListener('click', closeAuthModal);
-authModal.addEventListener('click', (e) => { if (e.target === authModal) closeAuthModal(); });
-
-document.querySelectorAll('.auth-tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => openAuthModal(btn.dataset.authtab));
-});
-
-// User dropdown menu
-const userMenuBtn = document.getElementById('userMenuBtn');
-const userDropdown = document.getElementById('userDropdown');
-userMenuBtn.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
-document.addEventListener('click', (e) => {
-  if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
-    userDropdown.classList.add('hidden');
-  }
-});
-
-function doLogout() {
-  clearAuth();
-  updateAuthUI();
-  showToast('You have been logged out.', 'success');
-  loadCommunityThoughts();
-}
-document.getElementById('logoutBtn').addEventListener('click', doLogout);
-document.getElementById('mobileLogoutBtn').addEventListener('click', doLogout);
-
-
-const changePasswordModal = document.getElementById('changePasswordModal');
-
-function openChangePasswordModal() {
-  userDropdown.classList.add('hidden');
-  mobileMenu.classList.add('hidden');
-  mobileMenu.classList.remove('flex');
-  changePasswordModal.classList.remove('hidden');
-}
-function closeChangePasswordModal() {
-  changePasswordModal.classList.add('hidden');
-  document.getElementById('changePasswordForm').reset();
-}
-
-document.getElementById('changePasswordNavBtn').addEventListener('click', openChangePasswordModal);
-document.getElementById('mobileChangePasswordBtn').addEventListener('click', openChangePasswordModal);
-document.getElementById('closeChangePasswordModal').addEventListener('click', closeChangePasswordModal);
-changePasswordModal.addEventListener('click', (e) => { if (e.target === changePasswordModal) closeChangePasswordModal(); });
-
-document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const token = getToken();
-  if (!token) {
-    showToast('Please log in first.', 'error');
-    return;
-  }
-
-  const formData = new FormData(e.target);
-  const currentPassword = formData.get('currentPassword');
-  const newPassword = formData.get('newPassword');
-  const confirmNewPassword = formData.get('confirmNewPassword');
-
-  if (newPassword !== confirmNewPassword) {
-    showToast('New password and confirmation do not match.', 'error');
-    return;
-  }
-  if (newPassword.length < 6) {
-    showToast('New password must be at least 6 characters long.', 'error');
-    return;
-  }
-
-  const btn = document.getElementById('changePasswordSubmitBtn');
-  const original = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Updating...';
-
-  try {
-    const res = await fetch('/api/auth/change-password', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ currentPassword, newPassword })
-    });
-    const data = await res.json();
-
-    if (res.status === 401) {
-      showToast('Session expired. Please log in again.', 'error');
-      clearAuth();
-      updateAuthUI();
-      closeChangePasswordModal();
-      openAuthModal('login');
-      return;
-    }
-
-    if (res.ok && data.success) {
-      showToast(data.message, 'success');
-      closeChangePasswordModal();
-    } else {
-      showToast(data.message || 'Failed to update password.', 'error');
-    }
-  } catch (err) {
-    showToast('Network error. Please try again.', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = original;
-  }
-});
-
-document.getElementById('loginFormAuth').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = document.getElementById('loginSubmitBtn');
-  const original = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Logging in...';
-
-  const formData = new FormData(e.target);
-  const payload = Object.fromEntries(formData.entries());
-
-  try {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-
-    if (res.ok && data.success) {
-      saveAuth(data.token, data.user);
-      updateAuthUI();
-      closeAuthModal();
-      showToast(data.message, 'success');
-      e.target.reset();
-      loadCommunityThoughts();
-    } else {
-      showToast(data.message || 'Login failed.', 'error');
-    }
-  } catch (err) {
-    showToast('Network error. Please try again.', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = original;
-  }
-});
-
-
-document.getElementById('signupFormAuth').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = document.getElementById('signupSubmitBtn');
-  const original = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Creating account...';
-
-  const formData = new FormData(e.target);
-  const payload = Object.fromEntries(formData.entries());
-
-  try {
-    const res = await fetch('/api/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-
-    if (res.ok && data.success) {
-      saveAuth(data.token, data.user);
-      updateAuthUI();
-      closeAuthModal();
-      showToast(data.message, 'success');
-      e.target.reset();
-      loadCommunityThoughts();
-    } else {
-      showToast(data.message || 'Sign up failed.', 'error');
-    }
-  } catch (err) {
-    showToast('Network error. Please try again.', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = original;
-  }
-});
-
-
-const categoryColors = {
-  Philosophy: 'bg-gold-500/20 text-gold-400 border-gold-500/30',
-  Gita: 'bg-saffron-500/20 text-saffron-400 border-saffron-500/30',
-  History: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  General: 'bg-purple-500/20 text-purple-400 border-purple-500/30'
-};
-
-function escapeHtmlPublic(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-}
-
-function timeAgo(dateStr) {
-  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  if (diff < 2592000) return `${Math.floor(diff / 86400)}d ago`;
-  return new Date(dateStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-async function loadCommunityThoughts() {
-  const grid = document.getElementById('communityGrid');
-  const emptyMsg = document.getElementById('communityEmptyMsg');
-  const loadingMsg = document.getElementById('communityLoadingMsg');
-
-  loadingMsg.classList.remove('hidden');
-  emptyMsg.classList.add('hidden');
-  grid.innerHTML = '';
-
-  try {
-    const token = getToken();
-    const res = await fetch('/api/thoughts/approved', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {}
-    });
-    const data = await res.json();
-    loadingMsg.classList.add('hidden');
-
-    if (!data.success || data.count === 0) {
-      emptyMsg.classList.remove('hidden');
-      return;
-    }
-
-    data.data.forEach(t => grid.appendChild(buildThoughtCard(t)));
-  } catch (err) {
-    loadingMsg.textContent = 'Failed to load community thoughts.';
-  }
-}
-
-function buildThoughtCard(t) {
-  const card = document.createElement('div');
-  card.className = 'glass-card rounded-2xl p-6 flex flex-col fade-in';
-  card.dataset.id = t._id;
-
-  const badgeClass = categoryColors[t.category] || categoryColors.General;
-  const showLikeCount = t.likeCount >= 50;
-  const likeLabel = showLikeCount ? `${t.likeCount}` : (t.likedByMe ? 'Liked' : 'Like');
-
-  card.innerHTML = `
-    <div class="flex items-center justify-between mb-3">
-      <span class="px-3 py-1 rounded-full text-xs border ${badgeClass}">${escapeHtmlPublic(t.category)}</span>
-      <span class="text-xs text-gray-500">${timeAgo(t.createdAt)}</span>
-    </div>
-    <h3 class="font-serif text-lg font-bold text-gray-100 mb-2 leading-snug">${escapeHtmlPublic(t.title)}</h3>
-    <p class="text-gray-400 text-sm leading-relaxed mb-4 flex-1">${escapeHtmlPublic(t.content.substring(0, 180))}${t.content.length > 180 ? '…' : ''}</p>
-    <p class="text-xs text-gold-400 mb-4">✍️ ${escapeHtmlPublic(t.authorName)}</p>
-    <div class="flex items-center gap-4 pt-4 border-t border-gold-500/10">
-      <button class="like-btn flex items-center gap-2 text-sm transition ${t.likedByMe ? 'text-red-400' : 'text-gray-400 hover:text-red-400'}" data-id="${t._id}">
-        <span class="like-icon">${t.likedByMe ? '❤️' : '🤍'}</span>
-        <span class="like-label">${likeLabel}</span>
-      </button>
-      <button class="comment-btn flex items-center gap-2 text-sm text-gray-400 hover:text-gold-400 transition" data-id="${t._id}" data-title="${escapeHtmlPublic(t.title)}">
-        <span>💬</span>
-        <span class="comment-count-label">${t.commentCount}</span>
-      </button>
-    </div>
-  `;
-
-  card.querySelector('.like-btn').addEventListener('click', () => handleLike(t._id, card));
-  card.querySelector('.comment-btn').addEventListener('click', () => openCommentsModal(t._id, t.title));
-
-  return card;
-}
-
-async function handleLike(thoughtId, cardEl) {
-  const token = getToken();
-  if (!token) {
-    showToast('Please log in to like a thought.', 'error');
-    openAuthModal('login');
-    return;
-  }
-
-  const likeBtn = cardEl.querySelector('.like-btn');
-  likeBtn.disabled = true;
-
-  try {
-    const res = await fetch(`/api/thoughts/${thoughtId}/like`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const data = await res.json();
-
-    if (res.status === 401) {
-      showToast('Session expired. Please log in again.', 'error');
-      clearAuth();
-      updateAuthUI();
-      openAuthModal('login');
-      return;
-    }
-
-    if (data.success) {
-      const iconEl = likeBtn.querySelector('.like-icon');
-      const labelEl = likeBtn.querySelector('.like-label');
-
-      if (data.liked) {
-        likeBtn.classList.remove('text-gray-400', 'hover:text-red-400');
-        likeBtn.classList.add('text-red-400');
-        iconEl.textContent = '❤️';
       } else {
-        likeBtn.classList.add('text-gray-400', 'hover:text-red-400');
-        likeBtn.classList.remove('text-red-400');
-        iconEl.textContent = '🤍';
+        if (typeof showToast === 'function') {
+          showToast(data.message || 'Google Login Failed', 'error');
+        } else {
+          alert('Login Failed: ' + data.message);
+        }
       }
-
-      labelEl.textContent = data.likeCount >= 50 ? `${data.likeCount}` : (data.liked ? 'Liked' : 'Like');
-    } else {
-      showToast(data.message || 'Failed to update like.', 'error');
+    } catch (err) {
+      console.error('Google login error:', err);
+      showToast('Network error during Google login', 'error');
     }
-  } catch (err) {
-    showToast('Network error. Please try again.', 'error');
-  } finally {
-    likeBtn.disabled = false;
   }
-}
-
-
-const commentsModal = document.getElementById('commentsModal');
-let activeThoughtId = null;
-
-function openCommentsModal(thoughtId, title) {
-  activeThoughtId = thoughtId;
-  document.getElementById('commentsModalTitle').textContent = title;
-  commentsModal.classList.remove('hidden');
-  loadComments(thoughtId);
-
-  const token = getToken();
-  document.getElementById('addCommentForm').classList.toggle('hidden', !token);
-  document.getElementById('commentLoginPrompt').classList.toggle('hidden', !!token);
-}
-
-function closeCommentsModal() {
-  commentsModal.classList.add('hidden');
-  activeThoughtId = null;
-  document.getElementById('commentInput').value = '';
-}
-
-document.getElementById('closeCommentsModal').addEventListener('click', closeCommentsModal);
-commentsModal.addEventListener('click', (e) => { if (e.target === commentsModal) closeCommentsModal(); });
-document.getElementById('commentLoginLink').addEventListener('click', (e) => {
-  e.preventDefault();
-  closeCommentsModal();
-  openAuthModal('login');
-});
-
-async function loadComments(thoughtId) {
-  const list = document.getElementById('commentsList');
-  const emptyMsg = document.getElementById('commentsEmptyMsg');
-  list.innerHTML = '<p class="text-center text-gray-500 text-sm py-6">Loading comments...</p>';
-  emptyMsg.classList.add('hidden');
-
-  try {
-    const res = await fetch(`/api/thoughts/${thoughtId}/comments`);
-    const data = await res.json();
-    list.innerHTML = '';
-
-    document.getElementById('commentsModalCount').textContent =
-      `${data.count} comment${data.count === 1 ? '' : 's'}`;
-
-    if (!data.success || data.count === 0) {
-      emptyMsg.classList.remove('hidden');
-      return;
-    }
-
-    data.data.forEach(c => {
-      const item = document.createElement('div');
-      item.className = 'flex gap-3';
-      item.innerHTML = `
-        <span class="w-9 h-9 rounded-full bg-gold-500/20 border border-gold-500/30 flex items-center justify-center text-gold-400 font-serif font-bold text-xs shrink-0">
-          ${getInitials(c.userName)}
-        </span>
-        <div class="flex-1">
-          <div class="flex items-center gap-2">
-            <p class="text-sm font-medium text-gray-100">${escapeHtmlPublic(c.userName)}</p>
-            <p class="text-xs text-gray-500">${timeAgo(c.createdAt)}</p>
-          </div>
-          <p class="text-sm text-gray-300 mt-0.5">${escapeHtmlPublic(c.text)}</p>
-        </div>
-      `;
-      list.appendChild(item);
-    });
-  } catch (err) {
-    list.innerHTML = '<p class="text-center text-red-400 text-sm py-6">Failed to load comments.</p>';
-  }
-}
-
-document.getElementById('addCommentForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const token = getToken();
-  if (!token || !activeThoughtId) return;
-
-  const input = document.getElementById('commentInput');
-  const text = input.value.trim();
-  if (!text) return;
-
-  const btn = document.getElementById('commentSubmitBtn');
-  btn.disabled = true;
-
-  try {
-    const res = await fetch(`/api/thoughts/${activeThoughtId}/comment`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ text })
-    });
-    const data = await res.json();
-
-    if (res.status === 401) {
-      showToast('Session expired. Please log in again.', 'error');
-      clearAuth();
-      updateAuthUI();
-      closeCommentsModal();
-      openAuthModal('login');
-      return;
-    }
-
-    if (data.success) {
-      input.value = '';
-      loadComments(activeThoughtId);
-      const cardEl = document.querySelector(`.comment-btn[data-id="${activeThoughtId}"]`);
-      if (cardEl) cardEl.querySelector('.comment-count-label').textContent = data.commentCount;
-    } else {
-      showToast(data.message || 'Failed to post comment.', 'error');
-    }
-  } catch (err) {
-    showToast('Network error. Please try again.', 'error');
-  } finally {
-    btn.disabled = false;
-  }
-});
-
-loadCommunityThoughts();
-  </script>
+</script>
 </body>
 
 </html>

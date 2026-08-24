@@ -7,8 +7,11 @@ const commentSchema = new mongoose.Schema(
       ref: 'User',
       required: true
     },
-    userName: { type: String, required: true, trim: true },
-    username: { type: String, trim: true, default: '' },
+    userName: {
+      type: String,
+      required: true,
+      trim: true
+    },
     text: {
       type: String,
       required: [true, 'Comment text is required'],
@@ -16,33 +19,29 @@ const commentSchema = new mongoose.Schema(
       minlength: 1,
       maxlength: 1000
     },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
   },
   { _id: true, versionKey: false }
 );
 
 const thoughtSchema = new mongoose.Schema(
   {
-    author: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      default: null
-    },
     authorName: {
       type: String,
+      required: [true, 'Author name is required'],
       trim: true,
-      default: 'Seeker'
-    },
-    username: {
-      type: String,
-      trim: true,
-      default: ''
+      minlength: 2,
+      maxlength: 100
     },
     email: {
       type: String,
+      required: [true, 'Email is required'],
       trim: true,
       lowercase: true,
-      default: ''
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please enter a valid email address']
     },
     title: {
       type: String,
@@ -63,15 +62,20 @@ const thoughtSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Content is required'],
       trim: true,
-      minlength: 10,
+      minlength: 20,
       maxlength: 10000
     },
     status: {
       type: String,
       enum: ['Pending', 'Approved'],
-      default: 'Approved' // Auto-approved for verified members
+      default: 'Pending'
     },
-    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    likes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      }
+    ],
     comments: [commentSchema],
     createdAt: {
       type: Date,

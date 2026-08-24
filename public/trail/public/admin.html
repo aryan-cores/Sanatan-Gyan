@@ -29,14 +29,14 @@
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: #120d08; }
   ::-webkit-scrollbar-thumb { background: #d4a437; border-radius: 4px; }
-  .tab-btn.active { background: linear-gradient(135deg, #d4a437, #ff9d31); color: #0a0704; font-weight: 600; }
+  .tab-btn.active { background: linear-gradient(135deg, #d4a437, #ff9d31); color: #0a0704; }
   .toast { transition: all 0.4s ease; }
   table { border-collapse: separate; border-spacing: 0; }
 </style>
 </head>
 <body class="text-gray-200 min-h-screen">
 
-<!-- Global Toast Notification -->
+
 <div id="toast" class="toast fixed top-5 right-5 z-[100] translate-x-[150%] opacity-0 max-w-sm">
   <div id="toastBox" class="glass-card rounded-xl px-5 py-4 shadow-2xl border-l-4 border-gold-500 flex items-start gap-3">
     <span id="toastIcon" class="text-2xl">✅</span>
@@ -44,7 +44,6 @@
   </div>
 </div>
 
-<!-- Admin Login Gate -->
 <div id="loginGate" class="min-h-screen flex items-center justify-center px-6">
   <div class="glass-card rounded-3xl p-10 w-full max-w-md text-center">
     <p class="text-4xl mb-3">🔐</p>
@@ -60,7 +59,7 @@
   </div>
 </div>
 
-<!-- Dashboard View -->
+
 <div id="dashboard" class="hidden">
 
   <!-- Header -->
@@ -79,38 +78,28 @@
 
   <main class="max-w-7xl mx-auto px-6 py-10">
 
-    <!-- 4 Stats Cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-      <div class="glass-card rounded-2xl p-5">
-        <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Total Contacts</p>
+    <!-- Stats -->
+    <div class="grid sm:grid-cols-3 gap-6 mb-10">
+      <div class="glass-card rounded-2xl p-6">
+        <p class="text-gray-400 text-sm mb-1">Total Contacts</p>
         <p id="statContacts" class="text-3xl font-bold gold-text">0</p>
       </div>
-      <div class="glass-card rounded-2xl p-5">
-        <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Total Thoughts</p>
+      <div class="glass-card rounded-2xl p-6">
+        <p class="text-gray-400 text-sm mb-1">Total Thoughts</p>
         <p id="statThoughts" class="text-3xl font-bold gold-text">0</p>
       </div>
-      <div class="glass-card rounded-2xl p-5">
-        <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Pending Thoughts</p>
+      <div class="glass-card rounded-2xl p-6">
+        <p class="text-gray-400 text-sm mb-1">Pending Approvals</p>
         <p id="statPending" class="text-3xl font-bold gold-text">0</p>
       </div>
-      <div class="glass-card rounded-2xl p-5 border-red-500/30">
-        <p class="text-red-400 text-xs uppercase tracking-wider mb-1">🚨 Reported Posts</p>
-        <p id="statReported" class="text-3xl font-bold text-red-400">0</p>
-      </div>
     </div>
 
-    <!-- Navigation Tabs -->
+
     <div class="flex flex-wrap gap-3 mb-8">
-      <button data-tab="contacts" class="tab-btn active px-5 py-2.5 rounded-full border border-gold-500/40 text-xs sm:text-sm transition">📩 Contact Enquiries</button>
-      <button data-tab="thoughts" class="tab-btn px-5 py-2.5 rounded-full border border-gold-500/40 text-xs sm:text-sm transition">📝 User Thoughts</button>
-      <button data-tab="reported" class="tab-btn px-5 py-2.5 rounded-full border border-red-500/40 text-xs sm:text-sm text-red-300 transition flex items-center gap-1.5">
-        <span>🚨 Reported Posts</span>
-        <span id="badgeReported" class="hidden px-2 py-0.5 rounded-full text-[10px] bg-red-600 text-white font-bold">0</span>
-      </button>
-      <button data-tab="allposts" class="tab-btn px-5 py-2.5 rounded-full border border-gold-500/40 text-xs sm:text-sm transition">📸 All Posts &amp; Reels (Moderation)</button>
+      <button data-tab="contacts" class="tab-btn active px-6 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">📩 Contact Enquiries</button>
+      <button data-tab="thoughts" class="tab-btn px-6 py-2 rounded-full border border-gold-500/40 text-sm font-medium transition">📝 User Thoughts</button>
     </div>
 
-    <!-- Tab 1: Contacts Panel -->
     <div id="contactsPanel" class="glass-card rounded-2xl overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
@@ -131,7 +120,7 @@
       <p id="contactsEmpty" class="hidden text-center text-gray-500 py-10">No contact submissions yet.</p>
     </div>
 
-    <!-- Tab 2: Thoughts Panel -->
+   
     <div id="thoughtsPanel" class="hidden glass-card rounded-2xl overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
@@ -153,49 +142,11 @@
       <p id="thoughtsEmpty" class="hidden text-center text-gray-500 py-10">No thoughts submitted yet.</p>
     </div>
 
-    <!-- Tab 3: Reported Content Panel -->
-    <div id="reportedPanel" class="hidden glass-card rounded-2xl overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="bg-red-950/40 text-red-300 uppercase text-xs tracking-wider border-b border-red-500/20">
-            <tr>
-              <th class="px-5 py-4 text-left">Preview</th>
-              <th class="px-5 py-4 text-left">Post Author</th>
-              <th class="px-5 py-4 text-left">Caption</th>
-              <th class="px-5 py-4 text-left">Reports Count</th>
-              <th class="px-5 py-4 text-left">Report Reasons</th>
-              <th class="px-5 py-4 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="reportedTableBody" class="divide-y divide-red-500/10"></tbody>
-        </table>
-      </div>
-      <p id="reportedEmpty" class="hidden text-center text-gray-500 py-12">🎉 No reported posts found. All content is clean!</p>
-    </div>
-
-    <!-- Tab 4: All Media & Posts Moderation Grid -->
-    <div id="allpostsPanel" class="hidden">
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="font-serif text-lg text-gold-300 font-bold">Content Moderation Gallery</h3>
-        <p id="totalPostsCountText" class="text-xs text-gray-400">Total 0 posts uploaded</p>
-      </div>
-      <div id="allPostsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"></div>
-      <p id="allPostsEmpty" class="hidden text-center text-gray-500 py-12 glass-card rounded-2xl">No posts found in database.</p>
-    </div>
-
   </main>
 </div>
 
-<!-- Lightbox / Video Media Preview Modal -->
-<div id="mediaPreviewModal" class="hidden fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-  <div class="glass-card rounded-2xl max-w-2xl w-full p-5 relative flex flex-col items-center">
-    <button id="closeMediaPreviewBtn" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl leading-none">✕</button>
-    <div id="mediaPreviewContainer" class="w-full max-h-[70vh] flex items-center justify-center rounded-xl overflow-hidden mb-4 bg-black"></div>
-    <p id="mediaPreviewCaption" class="text-sm text-gray-200 text-center w-full break-words"></p>
-  </div>
-</div>
-
 <script>
+  
   function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     const toastBox = document.getElementById('toastBox');
@@ -222,12 +173,16 @@
     }, 4500);
   }
 
+ 
   const loginGate = document.getElementById('loginGate');
   const dashboard = document.getElementById('dashboard');
   const loginForm = document.getElementById('loginForm');
   const adminKeyInput = document.getElementById('adminKeyInput');
   const loginSubmitBtn = loginForm.querySelector('button[type="submit"]');
 
+  // Strip control/non-printable characters, trim stray whitespace, and cap
+  // the length before an admin key is ever stored or sent — the key never
+  // reaches sessionStorage or a fetch header un-sanitized.
   function sanitizeAdminKey(raw) {
     if (typeof raw !== 'string') return '';
     return raw.replace(/[^\x20-\x7E]/g, '').trim().slice(0, 256);
@@ -245,50 +200,136 @@
     sessionStorage.removeItem('sg_admin_key');
   }
 
+  // ── Client-side brute-force lockout ──────────────────────────────────
+  // Backs off the login form for 30s after a 429 from the server, or after
+  // a few consecutive 401s in this tab. State lives in sessionStorage so a
+  // page refresh mid-lockout still honors it, and logout's
+  // sessionStorage.clear() wipes it automatically.
+  const ADMIN_LOCKOUT_KEY = 'sg_admin_lockout_until';
+  const ADMIN_FAIL_COUNT_KEY = 'sg_admin_fail_count';
+  const ADMIN_LOCKOUT_MS = 30000;
+  const ADMIN_FAIL_THRESHOLD = 3;
+
+  function getLockoutUntil() {
+    const v = parseInt(sessionStorage.getItem(ADMIN_LOCKOUT_KEY) || '0', 10);
+    return Number.isFinite(v) ? v : 0;
+  }
+
+  function isLockedOut() {
+    return Date.now() < getLockoutUntil();
+  }
+
+  function setLockoutUiState(locked) {
+    adminKeyInput.disabled = locked;
+    if (loginSubmitBtn) loginSubmitBtn.disabled = locked;
+  }
+
+  function startLockout() {
+    sessionStorage.setItem(ADMIN_LOCKOUT_KEY, String(Date.now() + ADMIN_LOCKOUT_MS));
+    setLockoutUiState(true);
+    setTimeout(() => {
+      if (!isLockedOut()) setLockoutUiState(false);
+    }, ADMIN_LOCKOUT_MS);
+  }
+
+  function clearLockoutState() {
+    sessionStorage.removeItem(ADMIN_LOCKOUT_KEY);
+    sessionStorage.removeItem(ADMIN_FAIL_COUNT_KEY);
+    setLockoutUiState(false);
+  }
+
+  function recordFailedAttempt() {
+    const count = parseInt(sessionStorage.getItem(ADMIN_FAIL_COUNT_KEY) || '0', 10) + 1;
+    sessionStorage.setItem(ADMIN_FAIL_COUNT_KEY, String(count));
+    return count;
+  }
+
+  // Re-apply lockout UI on load in case the page was refreshed mid-lockout.
+  if (isLockedOut()) {
+    setLockoutUiState(true);
+    setTimeout(() => {
+      if (!isLockedOut()) setLockoutUiState(false);
+    }, getLockoutUntil() - Date.now());
+  }
+
   async function tryUnlock(key) {
+    if (isLockedOut()) {
+      showToast('Too many failed login attempts. Please wait.', 'error');
+      return false;
+    }
+    // Validate by attempting to fetch contacts with this key
     try {
       const res = await fetch('/api/admin/contacts', {
         headers: { 'x-admin-key': key }
       });
+      if (res.status === 429) {
+        startLockout();
+        showToast('Too many failed login attempts. Please wait.', 'error');
+        return false;
+      }
       if (res.status === 401) {
-        showToast('Invalid admin key.', 'error');
+        const failCount = recordFailedAttempt();
+        showToast('Invalid admin key. Please try again.', 'error');
+        if (failCount >= ADMIN_FAIL_THRESHOLD) {
+          startLockout();
+          showToast('Too many failed login attempts. Please wait.', 'error');
+        }
         return false;
       }
       if (!res.ok) {
-        showToast('Unable to connect to server.', 'error');
+        showToast('Unable to connect to server. Please try again.', 'error');
         return false;
       }
+      clearLockoutState();
       setAdminKey(key);
       loginGate.classList.add('hidden');
       dashboard.classList.remove('hidden');
       loadAllData();
       return true;
     } catch (err) {
-      showToast('Network error. Check connection.', 'error');
+      showToast('Network error. Please check your connection.', 'error');
       return false;
     }
   }
 
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (isLockedOut()) {
+      showToast('Too many failed login attempts. Please wait.', 'error');
+      return;
+    }
     const key = sanitizeAdminKey(adminKeyInput.value);
     if (!key) return;
     await tryUnlock(key);
   });
 
   document.getElementById('logoutBtn').addEventListener('click', () => {
-    sessionStorage.clear();
+    sessionStorage.clear(); // wipe the admin key AND any other cached session state (lockout counters, etc.)
     dashboard.classList.add('hidden');
     loginGate.classList.remove('hidden');
     adminKeyInput.value = '';
+    setLockoutUiState(false);
+    // Clear any admin data left rendered in the DOM so nothing lingers
+    // on-screen after the session is wiped.
+    const contactsBody = document.getElementById('contactsTableBody');
+    const thoughtsBody = document.getElementById('thoughtsTableBody');
+    if (contactsBody) contactsBody.innerHTML = '';
+    if (thoughtsBody) thoughtsBody.innerHTML = '';
+    ['statContacts', 'statThoughts', 'statPending'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '0';
+    });
   });
 
+  // Auto-unlock if key already stored in this session
   window.addEventListener('DOMContentLoaded', () => {
     const savedKey = getAdminKey();
-    if (savedKey) tryUnlock(savedKey);
+    if (savedKey) {
+      tryUnlock(savedKey);
+    }
   });
 
-  // Tab switching
+ 
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -297,11 +338,10 @@
       const tab = btn.dataset.tab;
       document.getElementById('contactsPanel').classList.toggle('hidden', tab !== 'contacts');
       document.getElementById('thoughtsPanel').classList.toggle('hidden', tab !== 'thoughts');
-      document.getElementById('reportedPanel').classList.toggle('hidden', tab !== 'reported');
-      document.getElementById('allpostsPanel').classList.toggle('hidden', tab !== 'allposts');
     });
   });
 
+  
   async function fetchWithAuth(url, options = {}) {
     const key = getAdminKey();
     const res = await fetch(url, {
@@ -311,6 +351,15 @@
         'x-admin-key': key
       }
     });
+
+    if (res.status === 429) {
+      startLockout();
+      showToast('Too many failed login attempts. Please wait.', 'error');
+      clearAdminKey();
+      dashboard.classList.add('hidden');
+      loginGate.classList.remove('hidden');
+      throw new Error('Rate limited');
+    }
 
     if (res.status === 401) {
       showToast('Session expired. Please log in again.', 'error');
@@ -324,7 +373,8 @@
 
   function formatDate(dateStr) {
     const d = new Date(dateStr);
-    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) +
+           ' • ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
   }
 
   function truncate(text, len) {
@@ -332,21 +382,16 @@
     return text.length > len ? text.substring(0, len) + '…' : text;
   }
 
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-  }
-
-  // 1. Contacts
   async function loadContacts() {
     try {
       const res = await fetchWithAuth('/api/admin/contacts');
       const data = await res.json();
-      if (!data.success) return;
+      if (!data.success) throw new Error(data.message);
 
       const tbody = document.getElementById('contactsTableBody');
       const emptyMsg = document.getElementById('contactsEmpty');
       tbody.innerHTML = '';
+
       document.getElementById('statContacts').textContent = data.count;
 
       if (data.count === 0) {
@@ -375,15 +420,18 @@
       document.querySelectorAll('.delete-contact-btn').forEach(btn => {
         btn.addEventListener('click', () => deleteContact(btn.dataset.id));
       });
-    } catch (err) {}
+    } catch (err) {
+      if (err.message !== 'Unauthorized') {
+        showToast('Failed to load contacts.', 'error');
+      }
+    }
   }
 
-  // 2. Thoughts
   async function loadThoughts() {
     try {
       const res = await fetchWithAuth('/api/admin/thoughts');
       const data = await res.json();
-      if (!data.success) return;
+      if (!data.success) throw new Error(data.message);
 
       const tbody = document.getElementById('thoughtsTableBody');
       const emptyMsg = document.getElementById('thoughtsEmpty');
@@ -433,152 +481,10 @@
       document.querySelectorAll('.delete-thought-btn').forEach(btn => {
         btn.addEventListener('click', () => deleteThought(btn.dataset.id));
       });
-    } catch (err) {}
-  }
-
-  // 3. Reported Posts Moderation
-  async function loadReportedPosts() {
-    try {
-      const res = await fetchWithAuth('/api/admin/reported-posts');
-      const data = await res.json();
-      if (!data.success) return;
-
-      const tbody = document.getElementById('reportedTableBody');
-      const emptyMsg = document.getElementById('reportedEmpty');
-      const statReported = document.getElementById('statReported');
-      const badgeReported = document.getElementById('badgeReported');
-
-      tbody.innerHTML = '';
-      statReported.textContent = data.count;
-
-      if (data.count > 0) {
-        badgeReported.textContent = data.count;
-        badgeReported.classList.remove('hidden');
-      } else {
-        badgeReported.classList.add('hidden');
-      }
-
-      if (data.count === 0) {
-        emptyMsg.classList.remove('hidden');
-        return;
-      }
-      emptyMsg.classList.add('hidden');
-
-      data.data.forEach(p => {
-        const authorName = p.author?.name || 'Unknown';
-        const username = p.author?.username ? `@${p.author.username}` : '';
-        const isVideo = p.mediaType === 'reel';
-        const reasons = p.reports?.map(r => `• ${escapeHtml(r.reason || 'Inappropriate content')}`).join('<br>') || 'No details';
-
-        const row = document.createElement('tr');
-        row.className = 'hover:bg-red-500/5 transition';
-        row.innerHTML = `
-          <td class="px-5 py-4">
-            <div class="w-16 h-16 rounded-xl overflow-hidden border border-gold-500/30 bg-black cursor-pointer relative" onclick="openPreview('${p.mediaUrl}', '${p.mediaType}', '${escapeHtml(p.caption)}')">
-              ${isVideo ? `
-                <video src="${p.mediaUrl}" class="w-full h-full object-cover"></video>
-                <span class="absolute inset-0 flex items-center justify-center text-xs bg-black/40">▶</span>
-              ` : `
-                <img src="${p.mediaUrl}" class="w-full h-full object-cover" />
-              `}
-            </div>
-          </td>
-          <td class="px-5 py-4">
-            <p class="font-medium text-gray-100">${escapeHtml(authorName)}</p>
-            <p class="text-xs text-gold-400">${username}</p>
-          </td>
-          <td class="px-5 py-4 text-gray-300 max-w-xs text-xs">${escapeHtml(truncate(p.caption, 50)) || '<em class="text-gray-600">No caption</em>'}</td>
-          <td class="px-5 py-4"><span class="px-3 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">${p.reports?.length || 0} Reports</span></td>
-          <td class="px-5 py-4 text-xs text-gray-400 max-w-xs leading-relaxed">${reasons}</td>
-          <td class="px-5 py-4">
-            <div class="flex items-center gap-2">
-              <button onclick="dismissReport('${p._id}')" class="px-3 py-1.5 rounded-full text-xs font-medium bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500 hover:text-dark-900 transition">✅ Dismiss</button>
-              <button onclick="adminDeletePost('${p._id}')" class="px-3 py-1.5 rounded-full text-xs font-medium bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white transition">🗑️ Delete</button>
-            </div>
-          </td>
-        `;
-        tbody.appendChild(row);
-      });
-    } catch (err) {}
-  }
-
-  // 4. All Media Moderation Gallery
-  async function loadAllPosts() {
-    try {
-      const res = await fetchWithAuth('/api/admin/all-posts');
-      const data = await res.json();
-      if (!data.success) return;
-
-      const grid = document.getElementById('allPostsGrid');
-      const emptyMsg = document.getElementById('allPostsEmpty');
-      document.getElementById('totalPostsCountText').textContent = `Total ${data.count} posts uploaded`;
-      grid.innerHTML = '';
-
-      if (data.count === 0) {
-        emptyMsg.classList.remove('hidden');
-        return;
-      }
-      emptyMsg.classList.add('hidden');
-
-      data.data.forEach(p => {
-        const isVideo = p.mediaType === 'reel';
-        const card = document.createElement('div');
-        card.className = 'glass-card rounded-2xl overflow-hidden border border-gold-500/20 flex flex-col justify-between group';
-        card.innerHTML = `
-          <div class="relative aspect-square bg-black overflow-hidden cursor-pointer" onclick="openPreview('${p.mediaUrl}', '${p.mediaType}', '${escapeHtml(p.caption)}')">
-            ${isVideo ? `
-              <video src="${p.mediaUrl}" class="w-full h-full object-cover"></video>
-              <span class="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] bg-black/70 text-gold-400 border border-gold-500/30 font-semibold">▶ Reel</span>
-            ` : `
-              <img src="${p.mediaUrl}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-              <span class="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] bg-black/70 text-gray-300 border border-white/20 font-semibold">📷 Photo</span>
-            `}
-          </div>
-          <div class="p-4 flex flex-col gap-2">
-            <div class="flex items-center justify-between">
-              <span class="font-medium text-xs text-gold-300 truncate">${escapeHtml(p.author?.name || 'User')} (@${p.author?.username || 'user'})</span>
-              <span class="text-[10px] text-gray-500">${formatDate(p.createdAt)}</span>
-            </div>
-            <p class="text-xs text-gray-300 line-clamp-2">${escapeHtml(p.caption) || '<em class="text-gray-600">No caption</em>'}</p>
-            <div class="flex items-center justify-between pt-2 border-t border-gold-500/10 mt-1">
-              <span class="text-[11px] text-gray-400">❤️ ${p.likes?.length || 0} • 💬 ${p.comments?.length || 0}</span>
-              <button onclick="adminDeletePost('${p._id}')" class="px-3 py-1 rounded-full text-xs bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white transition">Delete</button>
-            </div>
-          </div>
-        `;
-        grid.appendChild(card);
-      });
-    } catch (err) {}
-  }
-
-  // Admin Actions
-  async function adminDeletePost(id) {
-    if (!confirm('⚠️ Are you sure you want to permanently delete this post from the platform & Cloudinary?')) return;
-    try {
-      const res = await fetchWithAuth(`/api/admin/posts/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        showToast(data.message, 'success');
-        loadReportedPosts();
-        loadAllPosts();
-      } else {
-        showToast(data.message || 'Failed to delete post.', 'error');
-      }
     } catch (err) {
-      showToast('Error deleting post.', 'error');
-    }
-  }
-
-  async function dismissReport(id) {
-    try {
-      const res = await fetchWithAuth(`/api/admin/posts/${id}/dismiss-reports`, { method: 'PATCH' });
-      const data = await res.json();
-      if (data.success) {
-        showToast('Reports dismissed successfully.', 'success');
-        loadReportedPosts();
+      if (err.message !== 'Unauthorized') {
+        showToast('Failed to load thoughts.', 'error');
       }
-    } catch (err) {
-      showToast('Error dismissing reports.', 'error');
     }
   }
 
@@ -593,8 +499,14 @@
       if (data.success) {
         showToast(data.message, 'success');
         loadThoughts();
+      } else {
+        showToast(data.message || 'Failed to update status.', 'error');
       }
-    } catch (err) {}
+    } catch (err) {
+      if (err.message !== 'Unauthorized') {
+        showToast('Failed to update thought status.', 'error');
+      }
+    }
   }
 
   async function deleteThought(id) {
@@ -605,8 +517,14 @@
       if (data.success) {
         showToast(data.message, 'success');
         loadThoughts();
+      } else {
+        showToast(data.message || 'Failed to delete.', 'error');
       }
-    } catch (err) {}
+    } catch (err) {
+      if (err.message !== 'Unauthorized') {
+        showToast('Failed to delete thought.', 'error');
+      }
+    }
   }
 
   async function deleteContact(id) {
@@ -617,37 +535,29 @@
       if (data.success) {
         showToast(data.message, 'success');
         loadContacts();
+      } else {
+        showToast(data.message || 'Failed to delete.', 'error');
       }
-    } catch (err) {}
-  }
-
-  // Media Lightbox
-  function openPreview(url, type, caption) {
-    const modal = document.getElementById('mediaPreviewModal');
-    const container = document.getElementById('mediaPreviewContainer');
-    const capEl = document.getElementById('mediaPreviewCaption');
-
-    if (type === 'reel') {
-      container.innerHTML = `<video src="${url}" controls autoplay class="max-h-[65vh] max-w-full rounded-lg"></video>`;
-    } else {
-      container.innerHTML = `<img src="${url}" class="max-h-[65vh] max-w-full object-contain rounded-lg" />`;
+    } catch (err) {
+      if (err.message !== 'Unauthorized') {
+        showToast('Failed to delete contact.', 'error');
+      }
     }
-    capEl.textContent = caption || '';
-    modal.classList.remove('hidden');
   }
 
-  document.getElementById('closeMediaPreviewBtn').addEventListener('click', () => {
-    const modal = document.getElementById('mediaPreviewModal');
-    const container = document.getElementById('mediaPreviewContainer');
-    container.innerHTML = '';
-    modal.classList.add('hidden');
-  });
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 
   function loadAllData() {
     loadContacts();
     loadThoughts();
-    loadReportedPosts();
-    loadAllPosts();
   }
 
   document.getElementById('refreshBtn').addEventListener('click', () => {
