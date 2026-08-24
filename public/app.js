@@ -3361,6 +3361,7 @@ document.getElementById('rejectFriendReqBtn').addEventListener('click', async ()
 // PRIVATE CHAT — Socket.io
 // ================================================================
 let socket = null;
+let pendingNewFeedPosts = []; // posts queued from 'new_feed_post' socket events, newest first, awaiting the banner click
 let activeChatUserId = null;
 let socketNetworkToastShown = false; // avoid stacking repeated toasts while offline/retrying
 
@@ -3375,7 +3376,7 @@ function connectSocket() {
   // event names before re-binding, so this function is safe to call more
   // than once without ever double-firing a handler (belt-and-braces on top
   // of the `if (socket) return` guard above).
-  ['connect', 'connect_error', 'disconnect', 'notification', 'receive_message', 'message_sent', 'message_error', 'friend_request']
+  ['connect', 'connect_error', 'disconnect', 'notification', 'receive_message', 'message_sent', 'message_error', 'friend_request', 'new_feed_post']
     .forEach(evt => socket.off(evt));
 
   // Successful (re)connection — clear the offline flag so a future drop
@@ -3486,7 +3487,55 @@ function connectSocket() {
   socket.on('friend_request', ({ from }) => {
     showFriendRequestToast(from.id, from.name);
   });
+
+  // Real-time feed: someone else just posted. Don't inject it straight into
+  // the DOM (that would yank the scroll position under the user) — queue it
+  // and show a small "New Post Available" banner they can tap to reveal it,
+  // same pattern Instagram/Twitter use.
+  socket.on('new_feed_post', (post) => {
+    const myId = getStoredUser()?.id;
+    // Skip our own post — the composer flow already reloads the feed with
+    // it locally, so re-adding it here would show it twice.
+    if (myId && post?.author?.id && String(post.author.id) === String(myId)) return;
+
+    pendingNewFeedPosts.unshift(post);
+    showNewFeedPostBanner();
+  });
 }
+
+function showNewFeedPostBanner() {
+  const banner = document.getElementById('newFeedPostBanner');
+  const textEl = document.getElementById('newFeedPostBannerText');
+  if (!banner || !textEl) return;
+
+  const count = pendingNewFeedPosts.length;
+  textEl.textContent = count > 1 ? `${count} New Posts Available` : 'New Post Available';
+  banner.classList.remove('hidden');
+}
+
+function revealPendingFeedPosts() {
+  const list = document.getElementById('feedList');
+  const banner = document.getElementById('newFeedPostBanner');
+  if (!list || !pendingNewFeedPosts.length) {
+    if (banner) banner.classList.add('hidden');
+    return;
+  }
+
+  // pendingNewFeedPosts is newest-first (unshift on arrival); prepend in
+  // chronological order so the very newest post ends up visually on top.
+  [...pendingNewFeedPosts].reverse().forEach((post) => {
+    const card = buildPostCard(post);
+    card.classList.add('fade-in');
+    list.prepend(card);
+    currentFeedPosts.unshift(post);
+  });
+
+  pendingNewFeedPosts = [];
+  if (banner) banner.classList.add('hidden');
+  list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.getElementById('newFeedPostBanner')?.addEventListener('click', revealPendingFeedPosts);
 
 function disconnectSocket() {
   if (socket) {

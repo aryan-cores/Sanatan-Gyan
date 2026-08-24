@@ -707,6 +707,19 @@
     </div>
   </div>
 
+  <!-- ===================== NEW FEED POST BANNER (real-time) ===================== -->
+  <!-- Fixed, floating pill below the navbar. Shown via socket.on('new_feed_post', ...)
+       in app.js. Clicking it prepends the queued post(s) into #feedList without a
+       page reload. Lives at root level (like #friendReqToast above) so its
+       position:fixed is never affected by a transformed ancestor. -->
+  <button id="newFeedPostBanner" type="button"
+    class="hidden fixed left-1/2 -translate-x-1/2 z-[45] btn-primary rounded-full px-5 py-2.5 text-sm shadow-2xl inline-flex items-center gap-2 fade-in"
+    style="top: 78px;">
+    <span>✨</span>
+    <span id="newFeedPostBannerText">New Post Available</span>
+    <span>— Click to View</span>
+  </button>
+
   <!-- ===================== TOAST CONTAINER (Bulletproof — always on top) ===================== -->
   <div id="toastContainer" style="position:fixed!important;top:20px!important;right:20px!important;z-index:9999999!important;display:flex;flex-direction:column;gap:10px;max-width:360px;width:calc(100% - 40px);pointer-events:none!important;"></div>
   <!-- Legacy #toast shim (kept so any old references don't crash) -->

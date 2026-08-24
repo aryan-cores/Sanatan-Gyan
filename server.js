@@ -25,10 +25,19 @@ const Message = require('./models/Message');
 const cloudinary = require('./config/cloudinary');
 const { uploadProfilePic, uploadPost } = require('./config/multer');
 
+// ── Allowed CORS origins ─────────────────────────────────────────────
+// Supports a comma-separated list in ALLOWED_ORIGIN (e.g.
+// "http://localhost:5000,https://sanatan-gyan.onrender.com") so local dev
+// and the Render production domain both work without editing code.
+const allowedOrigins = (process.env.ALLOWED_ORIGIN || 'http://localhost:5000,https://sanatan-gyan.onrender.com')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 const app = express();
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, {
-  cors: { origin: process.env.ALLOWED_ORIGIN || 'http://localhost:5000', credentials: true }
+  cors: { origin: allowedOrigins, credentials: true }
 });
 
 // ── Startup environment validation ──────────────────────────────────
@@ -51,10 +60,9 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 // ------------------- Middleware -------------------
-// CORS — sirf allowed origin se requests accept karo
-const allowedOrigin = process.env.ALLOWED_ORIGIN || 'http://localhost:5000';
+// CORS — sirf allowed origins se requests accept karo
 app.use(cors({
-  origin: allowedOrigin,
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json({ limit: '2mb' }));
@@ -197,17 +205,36 @@ function generateToken(user) {
   );
 }
 
-// ── Online users map ───────────────────────────────────────────────
+// ── Online users tracking ────────────────────────────────────────────
+// Maps userId -> Set of connected socket ids. A Set (not a single string)
+// is required because one user can have multiple sockets open at once
+// (two browser tabs, phone + laptop, etc.) — every connected socket also
+// joins a room named after its userId via socket.join(userId), so emitting
+// to a user is just io.to(userId).emit(...) regardless of how many tabs
+// they have open.
 const onlineUsers = new Map();
+
+function addOnlineSocket(userId, socketId) {
+  if (!onlineUsers.has(userId)) onlineUsers.set(userId, new Set());
+  onlineUsers.get(userId).add(socketId);
+}
+function removeOnlineSocket(userId, socketId) {
+  const set = onlineUsers.get(userId);
+  if (!set) return;
+  set.delete(socketId);
+  if (set.size === 0) onlineUsers.delete(userId);
+}
+function isUserOnline(userId) {
+  return onlineUsers.has(userId);
+}
 
 async function sendNotification(recipientId, senderId, type, message, postId = null) {
   try {
     if (recipientId.toString() === senderId.toString()) return;
     const notif = await Notification.create({ recipient: recipientId, sender: senderId, type, message, postId });
     const populated = await Notification.findById(notif._id).populate('sender', 'name username avatarColor profilePicture');
-    const socketId = onlineUsers.get(recipientId.toString());
-    if (socketId) {
-      io.to(socketId).emit('notification', {
+    if (isUserOnline(recipientId.toString())) {
+      io.to(recipientId.toString()).emit('notification', {
         _id: populated._id,
         type: populated.type,
         message: populated.message,
@@ -229,10 +256,10 @@ async function sendNotification(recipientId, senderId, type, message, postId = n
 }
 
 function emitFriendStatusUpdate(userIdA, userIdB, statusForA, statusForB) {
-  const socketA = onlineUsers.get(userIdA.toString());
-  const socketB = onlineUsers.get(userIdB.toString());
-  if (socketA) io.to(socketA).emit('friend_status_update', { withUserId: userIdB.toString(), status: statusForA });
-  if (socketB) io.to(socketB).emit('friend_status_update', { withUserId: userIdA.toString(), status: statusForB });
+  const idA = userIdA.toString();
+  const idB = userIdB.toString();
+  if (isUserOnline(idA)) io.to(idA).emit('friend_status_update', { withUserId: idB, status: statusForA });
+  if (isUserOnline(idB)) io.to(idB).emit('friend_status_update', { withUserId: idA, status: statusForB });
 }
 
 // ------------------- Authentication Routes -------------------
@@ -827,6 +854,37 @@ app.post('/api/posts', requireAuth, uploadPost.single('media'), async (req, res)
     await newPost.save();
     await newPost.populate('author', 'name username avatarColor profilePicture');
 
+    // ── Real-time feed broadcast ──────────────────────────────────────
+    // Tell every other connected client a fresh post landed, so it can show
+    // a "New Post Available" prompt instead of requiring a manual refresh.
+    // Shape matches the GET /api/posts feed item format so the frontend can
+    // feed this straight into the same card-builder it already uses.
+    // NOTE: `followedByMe` is intentionally omitted here — a global io.emit
+    // reaches every socket at once, so it can't be personalized per
+    // recipient the way the GET /api/posts route can. It defaults to
+    // false/undefined on the client and self-corrects on the next natural
+    // feed reload.
+    const feedBroadcastPost = {
+      _id: newPost._id,
+      author: {
+        id: newPost.author._id,
+        name: newPost.author.name,
+        username: newPost.author.username,
+        avatarColor: newPost.author.avatarColor,
+        profilePicture: newPost.author.profilePicture?.url || null
+      },
+      mediaType: newPost.mediaType,
+      mediaUrl: newPost.mediaUrl,
+      duration: newPost.duration,
+      caption: newPost.caption,
+      createdAt: newPost.createdAt,
+      likeCount: 0,
+      commentCount: 0,
+      likedByMe: false,
+      savedByMe: false
+    };
+    io.emit('new_feed_post', feedBroadcastPost);
+
     return res.status(201).json({ success: true, message: 'Post shared successfully!', data: newPost });
   } catch (error) {
     console.error('Post creation error:', error);
@@ -863,6 +921,16 @@ app.get('/api/posts', optionalAuth, async (req, res) => {
 
     const currentUserId = req.user ? req.user.id : null;
 
+    // Fetch the logged-in user's `following` list ONCE so every post in this
+    // page of the feed can carry a `followedByMe` flag — this is what fixes
+    // the "Follow" button resetting to unfollowed after a page refresh,
+    // since the frontend feed card reads exactly this field.
+    let followingIds = [];
+    if (currentUserId) {
+      const me = await User.findById(currentUserId).select('following');
+      followingIds = me && me.following ? me.following.map((id) => id.toString()) : [];
+    }
+
     const formatted = posts.map((p) => ({
       _id: p._id,
       author: {
@@ -880,6 +948,7 @@ app.get('/api/posts', optionalAuth, async (req, res) => {
       likeCount: (p.likes || []).length,
       commentCount: (p.comments || []).length,
       likedByMe: currentUserId ? (p.likes || []).some((id) => id && id.toString() === currentUserId) : false,
+      followedByMe: p.author?._id ? followingIds.includes(p.author._id.toString()) : false,
       savedByMe: false
     }));
 
@@ -1950,8 +2019,16 @@ io.use((socket, next) => {
 
 io.on('connection', (socket) => {
   const userId = socket.user.id;
-  onlineUsers.set(userId, socket.id);
-  io.emit('user_online', { userId });
+
+  // Join a room named after this user's id. Every tab/device this user has
+  // open joins the SAME room, so io.to(userId).emit(...) reaches all of
+  // them at once — no more "second tab silently overwrites the first"
+  // problem that a single-socket Map used to have.
+  socket.join(userId);
+
+  const wasOffline = !isUserOnline(userId);
+  addOnlineSocket(userId, socket.id);
+  if (wasOffline) io.emit('user_online', { userId });
 
   socket.on('send_message', async ({ receiverId, text, tempId } = {}) => {
     try {
@@ -1985,29 +2062,33 @@ io.on('connection', (socket) => {
         tempId: tempId || null
       };
 
-      // Only the OTHER participant's sockets get 'receive_message'. The sender
-      // gets a distinct 'message_sent' event so a single send never results in
-      // the message being appended twice on the sender's own screen.
-      const receiverSocketId = onlineUsers.get(receiverId);
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit('receive_message', payload);
-      }
-      socket.emit('message_sent', payload);
+      // Emit to the receiver's ROOM (all of their open tabs/devices at
+      // once), not a single cached socket id. If they're offline the room
+      // is simply empty and this is a harmless no-op — the message is
+      // already safely saved in MongoDB above and will show up next time
+      // they open the thread.
+      io.to(receiverId).emit('receive_message', payload);
+
+      // The sender gets a distinct 'message_sent' event so a single send
+      // never results in the message being appended twice on their own
+      // screen (and it reaches every tab the sender has open too).
+      io.to(userId).emit('message_sent', payload);
     } catch (err) {
       socket.emit('message_error', { message: 'Failed to send message.', tempId: tempId || null });
     }
   });
 
   socket.on('typing', ({ receiverId }) => {
-    const receiverSocketId = onlineUsers.get(receiverId);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit('user_typing', { userId });
-    }
+    if (!receiverId) return;
+    io.to(receiverId).emit('user_typing', { userId });
   });
 
   socket.on('disconnect', () => {
-    onlineUsers.delete(userId);
-    io.emit('user_offline', { userId });
+    removeOnlineSocket(userId, socket.id);
+    // Only announce "offline" once ALL of this user's tabs/devices have
+    // disconnected — closing one tab shouldn't mark them offline while
+    // another tab is still open.
+    if (!isUserOnline(userId)) io.emit('user_offline', { userId });
   });
 });
 
