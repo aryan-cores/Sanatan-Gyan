@@ -138,29 +138,46 @@ function clearAuth() {
 // ================================================================
 // RENDER AVATAR (profile picture or colored initials)
 // ================================================================
+// profilePicture can arrive in two shapes depending on the caller:
+//   • a plain URL string  — stored in localStorage via saveAuth()
+//   • { url, publicId }  — returned by Mongoose populate() in feed/comment data
+// This helper normalises both so every renderAvatarInto() call is safe.
+function resolveAvatarUrl(raw) {
+  if (!raw) return null;
+  if (typeof raw === 'string') return raw || null;
+  if (typeof raw === 'object') return raw.url || null;
+  return null;
+}
+
 function renderAvatarInto(el, user) {
   if (!el || !user) return;
-  if (user.profilePicture) {
-    // Apply via a temporary Image so we can catch load failures
-    // before writing to the element's backgroundImage.
+
+  const url = resolveAvatarUrl(user.profilePicture);
+
+  if (url) {
+    // Probe first — if the URL is broken fall back to initials gracefully.
     const probe = new Image();
     probe.onload = () => {
-      el.style.backgroundImage = `url('${user.profilePicture}')`;
+      el.style.backgroundImage = `url('${url}')`;
+      el.style.backgroundSize = 'cover';
+      el.style.backgroundPosition = 'center';
       el.style.backgroundColor = 'transparent';
       el.textContent = '';
     };
     probe.onerror = () => {
-      // Fall back gracefully to colored initials
-      el.style.backgroundImage = 'none';
-      el.style.backgroundColor = user.avatarColor || '#d4a437';
-      el.textContent = getInitials(user.name);
+      _renderInitials(el, user);
     };
-    probe.src = user.profilePicture;
+    probe.src = url;
   } else {
-    el.style.backgroundImage = 'none';
-    el.style.backgroundColor = user.avatarColor || '#d4a437';
-    el.textContent = getInitials(user.name);
+    _renderInitials(el, user);
   }
+}
+
+// Internal helper — renders the coloured-initials badge.
+function _renderInitials(el, user) {
+  el.style.backgroundImage = 'none';
+  el.style.backgroundColor = user.avatarColor || '#d4a437';
+  el.textContent = getInitials(user.name);
 }
 
 /**
@@ -365,6 +382,14 @@ function closeAuthModal() {
   authModal.classList.add('hidden');
   document.getElementById('loginFormAuth')?.reset();
   document.getElementById('signupFormAuth')?.reset();
+  // Reset OTP state too, otherwise reopening the modal could show a stale
+  // "Verified" state for an email the user hasn't typed yet.
+  signupOtpSentFor = null;
+  signupOtpVerified = false;
+  clearInterval(signupOtpResendTimer);
+  document.getElementById('signupOtpWrap')?.classList.add('hidden');
+  const sendBtn = document.getElementById('sendOtpBtn');
+  if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP'; }
 }
 
 // Each trigger is wired defensively (optional chaining + a guard on the
@@ -452,10 +477,186 @@ document.getElementById('loginFormAuth').addEventListener('submit', async (e) =>
 });
 
 // ================================================================
+// AUTH MODAL — Signup: email OTP send / verify / resend
+// ================================================================
+let signupOtpSentFor = null;   // email the currently-visible OTP was sent to
+let signupOtpVerified = false; // true only after a successful /verify-otp call
+let signupOtpRequestInFlight = false; // guards against double-fire from rapid clicks
+let signupOtpResendTimer = null;
+
+function setSignupOtpVerifiedState(verified) {
+  signupOtpVerified = verified;
+  const otpInput = document.getElementById('signupOtpInput');
+  const verifyBtn = document.getElementById('verifyOtpBtn');
+  const hint = document.getElementById('signupOtpHint');
+  if (!otpInput || !verifyBtn) return;
+
+  if (verified) {
+    otpInput.disabled = true;
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verified ✓';
+    if (hint) hint.textContent = 'Email verified.';
+  } else {
+    otpInput.disabled = false;
+    verifyBtn.disabled = false;
+    verifyBtn.textContent = 'Verify';
+  }
+}
+
+function startResendCooldown(seconds) {
+  const resendBtn = document.getElementById('resendOtpBtn');
+  if (!resendBtn) return;
+  resendBtn.disabled = true;
+
+  let remaining = seconds;
+  clearInterval(signupOtpResendTimer);
+  const tick = () => {
+    resendBtn.textContent = remaining > 0 ? `Resend (${remaining}s)` : 'Resend';
+    if (remaining <= 0) {
+      clearInterval(signupOtpResendTimer);
+      resendBtn.disabled = false;
+      return;
+    }
+    remaining -= 1;
+  };
+  tick();
+  signupOtpResendTimer = setInterval(tick, 1000);
+}
+
+async function sendSignupOtp() {
+  if (signupOtpRequestInFlight) return; // belt-and-suspenders against double-fire
+  const emailInput = document.getElementById('signupEmailInput');
+  const email = (emailInput?.value || '').trim().toLowerCase();
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('Please enter a valid email address first.', 'error');
+    emailInput?.focus();
+    return;
+  }
+
+  signupOtpRequestInFlight = true;
+  const sendBtn = document.getElementById('sendOtpBtn');
+  if (sendBtn) sendBtn.disabled = true;
+  const resendBtn = document.getElementById('resendOtpBtn');
+  if (resendBtn) resendBtn.disabled = true;
+
+  try {
+    const res = await fetch('/api/auth/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      signupOtpSentFor = email;
+      setSignupOtpVerifiedState(false);
+      document.getElementById('signupOtpWrap')?.classList.remove('hidden');
+      const otpInput = document.getElementById('signupOtpInput');
+      if (otpInput) { otpInput.value = ''; otpInput.focus(); }
+      // The email-row button's job is done — sending again from here would
+      // just duplicate the "Resend" button below, which is the exact mix-up
+      // that was confusing before. Lock it and point at the real control.
+      if (sendBtn) { sendBtn.textContent = 'OTP Sent ✓'; sendBtn.disabled = true; }
+      showToast(data.message || `Verification code sent to ${email}.`, 'success');
+      startResendCooldown(30);
+    } else {
+      showToast(data.message || 'Could not send verification code.', 'error');
+      if (sendBtn) sendBtn.disabled = false;
+      if (resendBtn) resendBtn.disabled = false;
+    }
+  } catch {
+    showToast('Network error. Please try again.', 'error');
+    if (sendBtn) sendBtn.disabled = false;
+    if (resendBtn) resendBtn.disabled = false;
+  } finally {
+    signupOtpRequestInFlight = false;
+  }
+}
+
+async function verifySignupOtp() {
+  const emailInput = document.getElementById('signupEmailInput');
+  const otpInput = document.getElementById('signupOtpInput');
+  const email = (emailInput?.value || '').trim().toLowerCase();
+  const otp = (otpInput?.value || '').trim();
+
+  if (signupOtpSentFor !== email) {
+    showToast('Please send a code to this email first.', 'error');
+    return;
+  }
+  if (!otp) {
+    showToast('Please enter the code sent to your email.', 'error');
+    otpInput?.focus();
+    return;
+  }
+
+  const verifyBtn = document.getElementById('verifyOtpBtn');
+  const orig = verifyBtn.textContent;
+  verifyBtn.disabled = true;
+  verifyBtn.textContent = 'Verifying…';
+
+  try {
+    const res = await fetch('/api/auth/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp })
+    });
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      setSignupOtpVerifiedState(true);
+      showToast('Email verified.', 'success');
+    } else {
+      showToast(data.message || 'Incorrect or expired code.', 'error');
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = orig;
+    }
+  } catch {
+    showToast('Network error. Please try again.', 'error');
+    verifyBtn.disabled = false;
+    verifyBtn.textContent = orig;
+  }
+}
+
+document.getElementById('sendOtpBtn')?.addEventListener('click', sendSignupOtp);
+document.getElementById('resendOtpBtn')?.addEventListener('click', sendSignupOtp);
+document.getElementById('verifyOtpBtn')?.addEventListener('click', verifySignupOtp);
+
+// If the email is edited after an OTP was sent, that OTP/verification no
+// longer applies — reset everything so the user must send+verify again.
+document.getElementById('signupEmailInput')?.addEventListener('input', (e) => {
+  const email = e.target.value.trim().toLowerCase();
+  if (signupOtpSentFor && email !== signupOtpSentFor) {
+    signupOtpSentFor = null;
+    setSignupOtpVerifiedState(false);
+    document.getElementById('signupOtpWrap')?.classList.add('hidden');
+    clearInterval(signupOtpResendTimer);
+    const sendBtn = document.getElementById('sendOtpBtn');
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP'; }
+  }
+});
+
+// ================================================================
 // AUTH MODAL — Signup submit
 // ================================================================
 document.getElementById('signupFormAuth').addEventListener('submit', async (e) => {
   e.preventDefault();
+
+  const formData = Object.fromEntries(new FormData(e.target));
+  const email = (formData.email || '').trim().toLowerCase();
+
+  if (signupOtpSentFor !== email || !signupOtpVerified) {
+    showToast('Please verify your email with the OTP first.', 'error');
+    return;
+  }
+
+  // OTP input is disabled after verification so FormData skips it.
+  // Read directly from the DOM element and inject it manually.
+  const otpInputEl = document.getElementById('signupOtpInput');
+  if (!formData.otp && otpInputEl) {
+    formData.otp = otpInputEl.value.trim();
+  }
+
   const btn = document.getElementById('signupSubmitBtn');
   const orig = btn.textContent;
   btn.disabled = true;
@@ -465,7 +666,7 @@ document.getElementById('signupFormAuth').addEventListener('submit', async (e) =
     const res = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(Object.fromEntries(new FormData(e.target)))
+      body: JSON.stringify(formData)
     });
     const data = await res.json();
 
@@ -473,6 +674,9 @@ document.getElementById('signupFormAuth').addEventListener('submit', async (e) =
       saveAuth(data.token, data.user);
       updateAuthUI();
       closeAuthModal();
+      signupOtpSentFor = null;
+      setSignupOtpVerifiedState(false);
+      document.getElementById('signupOtpWrap')?.classList.add('hidden');
       showToast(data.message, 'success');
       loadCommunityThoughts();
       loadFeed(true);
@@ -486,6 +690,67 @@ document.getElementById('signupFormAuth').addEventListener('submit', async (e) =
     btn.textContent = orig;
   }
 });
+
+// ================================================================
+// MANDATORY PROFILE COMPLETION MODAL (first-time Google sign-in)
+// ================================================================
+function openCompleteProfileModal(user) {
+  const modal = document.getElementById('completeProfileModal');
+  if (!modal) return;
+  const usernameInput = document.getElementById('cpUsernameInput');
+  // Pre-fill with the server-generated placeholder so the user can keep it
+  // if they like, or change it — it's still required to be unique.
+  if (usernameInput && user?.username) usernameInput.value = user.username;
+  modal.classList.remove('hidden');
+}
+window.openCompleteProfileModal = openCompleteProfileModal;
+
+document.getElementById('completeProfileForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('completeProfileSubmitBtn');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    const res = await fetch('/api/auth/complete-profile', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify(Object.fromEntries(new FormData(e.target)))
+    });
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      saveAuth(data.token, data.user);
+      updateAuthUI();
+      document.getElementById('completeProfileModal')?.classList.add('hidden');
+      e.target.reset();
+      showToast(data.message || 'Account ready!', 'success');
+      loadCommunityThoughts();
+      loadFeed(true);
+    } else {
+      showToast(data.message || 'Could not complete setup.', 'error');
+    }
+  } catch {
+    showToast('Network error. Please try again.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+});
+
+// On page load, if a signed-in user's profile is still incomplete
+// (e.g. they closed the tab mid-setup last time), reopen the mandatory
+// setup modal instead of letting them use a half-set-up account.
+(function checkPendingProfileSetup() {
+  const user = getStoredUser();
+  if (user && user.profileComplete === false) {
+    openCompleteProfileModal(user);
+  }
+})();
 
 // ================================================================
 // USER DROPDOWN MENU
@@ -603,12 +868,12 @@ function closeEditProfileModal() { /* no-op */ }
     document.getElementById('pmJoinDate').textContent = '';
 
     const removeBtn = document.getElementById('pmRemovePhotoBtn');
-    removeBtn.classList.toggle('hidden', !user.profilePicture);
+    removeBtn.classList.toggle('hidden', !resolveAvatarUrl(user.profilePicture));
 
     // Photo hai toh "Change Photo", sirf initials (text) hai toh "Add Photo"
     const changeBtn = document.getElementById('pmChangePhotoBtn');
     if (changeBtn) {
-      changeBtn.innerHTML = user.profilePicture ? '📷 Change Photo' : '📷 Add Photo';
+      changeBtn.innerHTML = resolveAvatarUrl(user.profilePicture) ? '📷 Change Photo' : '📷 Add Photo';
     }
 
     // Load stats + posts grid via public profile API
@@ -678,9 +943,16 @@ function closeEditProfileModal() { /* no-op */ }
       const data = await res.json();
       if (res.status === 401) { handleAuthExpiry(); closeProfileModal(); return; }
       if (res.ok && data.success) {
-        const user = getStoredUser();
-        user.profilePicture = data.profilePicture;
-        saveAuth(token, user);
+        // Prefer the full user object the server returns; fall back to
+        // patching just the profilePicture field on the stored user so we
+        // never accidentally wipe unrelated fields (e.g. notificationsMuted).
+        if (data.user) {
+          saveAuth(token, data.user);
+        } else {
+          const user = getStoredUser();
+          user.profilePicture = data.profilePicture;
+          saveAuth(token, user);
+        }
         updateAuthUI();
         refreshPmHeader();
         showToast('Profile picture updated!', 'success');
@@ -720,9 +992,13 @@ function closeEditProfileModal() { /* no-op */ }
       if (res.status === 401) { handleAuthExpiry(); closeProfileModal(); return; }
 
       if (res.ok && data && data.success) {
-        const user = getStoredUser();
-        user.profilePicture = null;
-        saveAuth(token, user);
+        if (data.user) {
+          saveAuth(token, data.user);
+        } else {
+          const user = getStoredUser();
+          user.profilePicture = null;
+          saveAuth(token, user);
+        }
         updateAuthUI();
         refreshPmHeader();
         showToast(data.message || 'Profile picture removed.', 'success');
@@ -1641,9 +1917,7 @@ async function loadComments(thoughtId) {
       const displayName = c.username ? `@${escapeHtml(c.username)}` : escapeHtml(c.userName || 'seeker');
       const authorId = c.userId || c.user || c.author;
       item.innerHTML = `
-        <button type="button" class="w-9 h-9 rounded-full bg-gold-500/15 border border-gold-500/25 flex items-center justify-center text-gold-400 font-serif font-bold text-xs shrink-0 cursor-pointer hover:border-gold-500/60 transition" title="View Profile">
-          ${getInitials(c.userName || c.username)}
-        </button>
+        <button type="button" class="comment-avatar-btn w-9 h-9 rounded-full bg-cover bg-center border border-gold-500/25 flex items-center justify-center text-gold-400 font-serif font-bold text-xs shrink-0 cursor-pointer hover:border-gold-500/60 transition" title="View Profile"></button>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-0.5">
             <button type="button" class="text-sm font-medium text-gold-400 hover:underline cursor-pointer text-left">${displayName}</button>
@@ -1652,6 +1926,14 @@ async function loadComments(thoughtId) {
           <p class="text-sm text-gray-300 leading-relaxed">${escapeHtml(c.text)}</p>
         </div>
       `;
+
+      // Render the commenter's actual profile picture, falling back to colored initials.
+      renderAvatarInto(item.querySelector('.comment-avatar-btn'), {
+        name: c.userName || c.username,
+        avatarColor: c.avatarColor,
+        profilePicture: c.profilePicture
+      });
+
       if (authorId) {
         item.querySelectorAll('button').forEach(b => {
           b.addEventListener('click', () => {
@@ -2549,9 +2831,7 @@ function buildPostCommentEl(c) {
       const authorId = c.userId || c.user || c.author;
 
       el.innerHTML = `
-    <button type="button" class="w-8 h-8 rounded-full bg-gold-500/15 border border-gold-500/25 flex items-center justify-center text-gold-400 font-serif font-bold text-xs shrink-0 cursor-pointer hover:border-gold-500/60 transition" title="View Profile">
-      ${getInitials(c.userName || c.username)}
-    </button>
+    <button type="button" class="comment-avatar-btn w-8 h-8 rounded-full bg-cover bg-center border border-gold-500/25 flex items-center justify-center text-gold-400 font-serif font-bold text-xs shrink-0 cursor-pointer hover:border-gold-500/60 transition" title="View Profile"></button>
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 mb-0.5 flex-wrap">
         <button type="button" class="text-xs font-semibold text-gold-400 hover:underline cursor-pointer text-left">
@@ -2562,6 +2842,13 @@ function buildPostCommentEl(c) {
       <p class="text-xs sm:text-sm text-gray-200 leading-relaxed break-words">${escapeHtml(c.text)}</p>
     </div>
   `;
+
+      // Render the commenter's actual profile picture, falling back to colored initials.
+      renderAvatarInto(el.querySelector('.comment-avatar-btn'), {
+        name: c.userName || c.username,
+        avatarColor: c.avatarColor,
+        profilePicture: c.profilePicture
+      });
 
       if (authorId) {
         el.querySelectorAll('button').forEach(b => {
@@ -2746,9 +3033,7 @@ function normalizeFollowListUser(entry) {
   if (!entry) return null;
   const id = entry.id || entry._id;
   if (!id) return null;
-  const profilePicture = (entry.profilePicture && typeof entry.profilePicture === 'object')
-    ? (entry.profilePicture.url || null)
-    : (entry.profilePicture || null);
+  const profilePicture = resolveAvatarUrl(entry.profilePicture);
   return {
     id,
     name: entry.name || 'Unknown User',
@@ -3109,10 +3394,7 @@ function openProfilePhotoZoom(userOrAvatarData) {
   const img = document.getElementById('profilePhotoZoomImg');
   const initials = document.getElementById('profilePhotoZoomInitials');
 
-  // Handle either a flat URL string or a { url } object, matching the
-  // defensive shape-normalization used elsewhere for avatar data
-  const raw = userOrAvatarData.profilePicture;
-  const profilePicUrl = (raw && typeof raw === 'object') ? (raw.url || null) : (raw || null);
+  const profilePicUrl = resolveAvatarUrl(userOrAvatarData.profilePicture);
 
   if (profilePicUrl) {
     img.src = profilePicUrl;
@@ -3647,6 +3929,22 @@ function prependNotification(n) {
   showToast(n.message, 'success');
 }
 
+// Marks every currently-loaded notification as read, both locally (instant badge clear)
+// and on the server (persists across reloads/devices). Safe to call repeatedly / with no unread items.
+async function markAllNotificationsRead() {
+  const token = getToken();
+  if (!token) return;
+  const hadUnread = allNotifications.some(n => !n.read);
+  if (!hadUnread) return;
+
+  allNotifications.forEach(n => { n.read = true; });
+  updateNotifBadge();
+  renderNotifList();
+  try {
+    await fetch('/api/notifications/read-all', { method: 'PATCH', headers: { Authorization: `Bearer ${token}` } });
+  } catch { /* silent — will resync on next loadNotifications() */ }
+}
+
 async function markNotifRead(id) {
   const token = getToken();
   if (!token) return;
@@ -3690,7 +3988,12 @@ async function handleNotifClick(n) {
 
 document.getElementById('notifBellBtn').addEventListener('click', (e) => {
   e.stopPropagation();
-  document.getElementById('notifDropdown').classList.toggle('hidden');
+  const dd = document.getElementById('notifDropdown');
+  const isOpening = dd.classList.contains('hidden');
+  dd.classList.toggle('hidden');
+  // Panel just closed (either it was open and this click hid it, or user reopened+closed elsewhere) —
+  // once the user has seen the panel, clear the unread badge.
+  if (!isOpening) markAllNotificationsRead();
 });
 document.getElementById('mobTopNotifBtn').addEventListener('click', (e) => {
   e.stopPropagation();
@@ -3707,16 +4010,10 @@ document.getElementById('mobProfileBtn').addEventListener('click', () => {
 });
 document.getElementById('notifCloseBtn').addEventListener('click', () => {
   document.getElementById('notifDropdown').classList.add('hidden');
+  markAllNotificationsRead();
 });
-document.getElementById('notifMarkAllReadBtn').addEventListener('click', async () => {
-  const token = getToken();
-  if (!token) return;
-  allNotifications.forEach(n => n.read = true);
-  updateNotifBadge();
-  renderNotifList();
-  try {
-    await fetch('/api/notifications/read-all', { method: 'PATCH', headers: { Authorization: `Bearer ${token}` } });
-  } catch { /* silent */ }
+document.getElementById('notifMarkAllReadBtn').addEventListener('click', () => {
+  markAllNotificationsRead();
 });
 document.addEventListener('click', (e) => {
   const dd = document.getElementById('notifDropdown');
@@ -3725,8 +4022,57 @@ document.addEventListener('click', (e) => {
   if (!dd.classList.contains('hidden') && !dd.contains(e.target) &&
     !bellWrap.contains(e.target) && !mobBtn.contains(e.target)) {
     dd.classList.add('hidden');
+    markAllNotificationsRead();
   }
 });
+
+// ------------------- Notification Mute / Unmute -------------------
+function updateNotifMuteBtn(muted) {
+  const btn = document.getElementById('notifMuteToggleBtn');
+  if (!btn) return;
+  btn.textContent = muted ? '🔕 Unmute' : '🔔 Mute';
+  btn.title = muted ? 'Unmute notifications' : 'Mute notifications';
+  btn.classList.toggle('text-red-400', muted);
+  btn.classList.toggle('text-gray-400', !muted);
+}
+
+document.getElementById('notifMuteToggleBtn')?.addEventListener('click', async (e) => {
+  e.stopPropagation();
+  const token = getToken();
+  if (!token) { openAuthModal('login'); return; }
+
+  const user = getStoredUser();
+  const currentlyMuted = !!user?.notificationsMuted;
+  const nextState = !currentlyMuted;
+
+  // Optimistic UI update
+  updateNotifMuteBtn(nextState);
+  if (user) { user.notificationsMuted = nextState; saveAuth(token, user); }
+
+  try {
+    const res = await fetch('/api/notifications/mute-toggle', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ muted: nextState })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error('toggle failed');
+    updateNotifMuteBtn(data.notificationsMuted);
+    if (user) { user.notificationsMuted = data.notificationsMuted; saveAuth(token, user); }
+    showToast(data.notificationsMuted ? 'Notifications muted.' : 'Notifications unmuted.', 'success');
+  } catch {
+    // Roll back on failure
+    updateNotifMuteBtn(currentlyMuted);
+    if (user) { user.notificationsMuted = currentlyMuted; saveAuth(token, user); }
+    showToast('Could not update mute setting. Try again.', 'error');
+  }
+});
+
+// Reflect the stored mute preference as soon as we know who the user is.
+(function initNotifMuteBtnState() {
+  const user = getStoredUser();
+  if (user) updateNotifMuteBtn(!!user.notificationsMuted);
+})();
 
 // ── Chat Drawer UI ──
 const chatDrawer = document.getElementById('chatDrawer');

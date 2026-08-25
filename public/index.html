@@ -49,9 +49,13 @@
     class="hidden fixed top-16 right-5 glass-card rounded-2xl w-80 max-h-[420px] shadow-2xl z-[115] border border-gold-500/20 flex flex-col overflow-hidden">
     <div class="flex items-center justify-between px-4 py-3 border-b border-gold-500/10 shrink-0">
       <p class="text-sm font-semibold text-gray-100">Notifications</p>
-      <button id="notifMarkAllReadBtn" class="text-xs text-gold-400 hover:text-gold-300 transition-colors">Mark all
-        read</button>
-      <button id="notifCloseBtn" class="text-gray-400 hover:text-gold-400 text-lg leading-none">✕</button>
+      <div class="flex items-center gap-3">
+        <button id="notifMuteToggleBtn" type="button"
+          class="text-xs text-gray-400 hover:text-gold-400 transition-colors" title="Mute notifications">🔔 Mute</button>
+        <button id="notifMarkAllReadBtn" class="text-xs text-gold-400 hover:text-gold-300 transition-colors">Mark all
+          read</button>
+        <button id="notifCloseBtn" class="text-gray-400 hover:text-gold-400 text-lg leading-none">✕</button>
+      </div>
     </div>
     <div id="notifListLoading" class="hidden py-8 text-center text-xs text-gray-500">Loading…</div>
     <div id="notifListEmpty" class="hidden py-10 text-center text-xs text-gray-500">No notifications yet.</div>
@@ -222,8 +226,32 @@
         </div>
         <div>
           <label class="block text-[11px] text-gray-400 mb-1">Email Address</label>
-          <input type="email" name="email" required placeholder="you@example.com"
-            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition" />
+          <div class="flex gap-2">
+            <input type="email" name="email" id="signupEmailInput" required placeholder="you@example.com"
+              class="flex-1 min-w-0 bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition" />
+            <button type="button" id="sendOtpBtn"
+              class="shrink-0 px-3 py-2.5 rounded-xl text-xs font-semibold border border-gold-500/40 text-gold-400 hover:bg-gold-500/10 transition whitespace-nowrap">
+              Send OTP
+            </button>
+          </div>
+        </div>
+        <div id="signupOtpWrap" class="hidden">
+          <label class="block text-[11px] text-gray-400 mb-1">Email Verification Code</label>
+          <div class="flex gap-2 items-center">
+            <input type="text" name="otp" id="signupOtpInput" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+              placeholder="6-digit code" autocomplete="one-time-code"
+              class="flex-1 min-w-0 bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition tracking-widest" />
+            <button type="button" id="verifyOtpBtn"
+              class="btn-primary shrink-0 px-4 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap">
+              Verify
+            </button>
+          </div>
+          <div class="flex items-center justify-between mt-1.5">
+            <p id="signupOtpHint" class="text-[11px] text-gray-500">Code sent — expires in 10 minutes.</p>
+            <button type="button" id="resendOtpBtn" class="text-[11px] text-gold-400 hover:underline whitespace-nowrap">
+              Resend
+            </button>
+          </div>
         </div>
         <div>
           <label class="block text-[11px] text-gray-400 mb-1">Password</label>
@@ -243,6 +271,36 @@
              for why: renderButton() has an automatic popup fallback that
              prompt()-only custom buttons don't get). -->
         <div id="googleSignupBtnContainer" class="w-full flex justify-center" style="min-height:44px"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============== MANDATORY PROFILE COMPLETION MODAL (first-time Google sign-in) ============== -->
+  <!-- Not closable via ✕/backdrop — user must set a username + password before doing anything else. -->
+  <div id="completeProfileModal"
+    class="hidden fixed inset-0 z-[120] flex items-center justify-center px-4 bg-black/80 backdrop-blur-sm modal-backdrop">
+    <div class="glass-card modal-panel rounded-2xl sm:rounded-3xl p-6 sm:p-8 w-full max-w-md relative">
+      <h3 class="font-serif text-xl font-bold gold-text text-center mb-1">One Last Step</h3>
+      <p class="text-center text-xs text-gray-500 mb-5">
+        You signed up with Google. Choose a unique username and a password so you can also log in directly next time.
+      </p>
+      <form id="completeProfileForm" class="space-y-3.5">
+        <div>
+          <label class="block text-[11px] text-gray-400 mb-1">Username (Unique)</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gold-400 text-sm font-semibold">@</span>
+            <input type="text" name="username" id="cpUsernameInput" required minlength="3" maxlength="30" pattern="^[a-zA-Z0-9_.]+$" placeholder="amit_kumar"
+              class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl pl-8 pr-4 py-2.5 text-gray-100 text-sm glow-input transition lowercase" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-[11px] text-gray-400 mb-1">Password</label>
+          <input type="password" name="password" required minlength="8" placeholder="Min. 8 characters"
+            class="w-full bg-dark-700/60 border border-gold-500/25 rounded-xl px-4 py-2.5 text-gray-100 text-sm glow-input transition" />
+        </div>
+        <button type="submit" id="completeProfileSubmitBtn" class="btn-primary w-full py-3 rounded-full shadow-lg text-sm font-semibold mt-2">
+          Complete Setup
+        </button>
       </form>
     </div>
   </div>
@@ -1665,6 +1723,21 @@
           localStorage.setItem('sg_user', JSON.stringify(data.user));
         }
 
+        const authModal = document.getElementById('authModal');
+
+        if (data.needsSetup) {
+          // First-time Google sign-in: mandatory username + password step
+          // before the rest of the app is usable (server enforces this too).
+          if (authModal) authModal.classList.add('hidden');
+          if (typeof openCompleteProfileModal === 'function') {
+            openCompleteProfileModal(data.user);
+          }
+          if (typeof showToast === 'function') {
+            showToast(data.message || 'Please finish setting up your account.', 'info');
+          }
+          return;
+        }
+
         // UI instantly update karein
         if (typeof updateAuthUI === 'function') {
           updateAuthUI();
@@ -1674,7 +1747,6 @@
           showToast(data.message || 'Login Successful!', 'success');
         }
 
-        const authModal = document.getElementById('authModal');
         if (authModal) authModal.classList.add('hidden');
 
         // Community thoughts & feed reload karein

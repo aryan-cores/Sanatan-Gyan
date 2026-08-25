@@ -25,14 +25,29 @@ const userSchema = new mongoose.Schema(
   password: {
     type: String,
     required: function () {
-      // Agar user Google se login kar raha hai toh password nahi lagega, 
-      // Lekin agar normal username se register karega toh password MANDATORY hai.
-      return !this.googleId;
-    }
+      // Normal (non-Google) signup: password hamesha mandatory hai.
+      // Google signup: password sirf tab mandatory nahi jab tak profile setup
+      // (username + password) complete nahi hota — uske baad ye bhi required ho jaata hai.
+      return !this.googleId || this.profileComplete;
+    },
+    select: false
   },
   googleId: {
     type: String,
     sparse: true
+  },
+  // False sirf naye Google-first-time users ke liye jab tak wo mandatory
+  // Signup/Profile-completion step mein apna username + password set nahi karte.
+  // Normal email/password signups ke liye ye hamesha true hota hai.
+  profileComplete: {
+    type: Boolean,
+    default: true
+  },
+  // Normal signup mein email OTP verify hone ke baad true hota hai.
+  // Google signup mein email already Google se verified maana jaata hai, so true.
+  emailVerified: {
+    type: Boolean,
+    default: false
   },
   avatar: {
     type: String,
@@ -73,6 +88,8 @@ const userSchema = new mongoose.Schema(
     ],
     // NEW: blocked users list
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    // Notification mute preference — when true, no new notifications are created/pushed for this user
+    notificationsMuted: { type: Boolean, default: false },
     savedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
     savedThoughts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Thought' }]
   },

@@ -21,9 +21,11 @@ const Thought = require('./models/Thought');
 const User = require('./models/User');
 const Post = require('./models/Post');
 const Message = require('./models/Message');
+const EmailOtp = require('./models/EmailOtp');
 
 const cloudinary = require('./config/cloudinary');
 const { uploadProfilePic, uploadPost } = require('./config/multer');
+const { sendOtpEmail } = require('./config/mailer');
 
 // ── Allowed CORS origins ─────────────────────────────────────────────
 // Supports a comma-separated list in ALLOWED_ORIGIN (e.g.
@@ -88,7 +90,17 @@ const actionLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// OTP requests par extra-tight limit — email spam/bombing se bachao
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // max 5 OTP requests per 15 min per IP
+  message: { success: false, message: 'Bahut zyada OTP requests. 15 minute baad try karo.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use('/api/auth', authLimiter);
+app.use('/api/auth/send-otp', otpLimiter);
 app.use('/api/contact', authLimiter);
 
 // ------------------- MongoDB Connection -------------------
@@ -152,6 +164,15 @@ function verifyAdmin(req, res, next) {
 }
 
 // ------------------- User Auth Middleware -------------------
+
+// In-progress Google signups (profileComplete === false) sirf inn routes ko
+// hit kar sakte hain jab tak mandatory username/password setup complete nahi ho jaata.
+const PROFILE_SETUP_EXEMPT_PATHS = new Set([
+  '/api/auth/me',
+  '/api/auth/complete-profile',
+  '/api/auth/check-username'
+]);
+
 function requireAuth(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
@@ -162,7 +183,20 @@ function requireAuth(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; // { id, name, username, email }
+    req.user = decoded; // { id, name, username, email, profileComplete }
+
+    // Mandatory setup gate: Google se first-time sign-in karne wale user ka
+    // profile jab tak complete (username + password set) nahi hota, tab tak
+    // wo baaki protected routes access nahi kar sakta — sirf apna profile
+    // complete karne / khud ko check karne wale routes allow hain.
+    if (decoded.profileComplete === false && !PROFILE_SETUP_EXEMPT_PATHS.has(req.path)) {
+      return res.status(403).json({
+        success: false,
+        code: 'PROFILE_INCOMPLETE',
+        message: 'Please finish setting up your username and password before continuing.'
+      });
+    }
+
     next();
   } catch (err) {
     return res.status(401).json({ success: false, message: 'Invalid or expired session. Please log in again.' });
@@ -199,10 +233,26 @@ async function areFriends(userIdA, userIdB) {
 
 function generateToken(user) {
   return jwt.sign(
-    { id: user._id, name: user.name, username: user.username, email: user.email },
+    {
+      id: user._id,
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      // undefined/null (legacy docs) => true, taaki purane users kabhi lock-out na ho
+      profileComplete: user.profileComplete !== false
+    },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
   );
+}
+
+// 6-digit numeric OTP, cryptographically random
+function generateOtp() {
+  return crypto.randomInt(100000, 1000000).toString();
+}
+
+function hashOtp(otp) {
+  return crypto.createHash('sha256').update(otp).digest('hex');
 }
 
 // ── Online users tracking ────────────────────────────────────────────
@@ -231,7 +281,18 @@ function isUserOnline(userId) {
 async function sendNotification(recipientId, senderId, type, message, postId = null) {
   try {
     if (recipientId.toString() === senderId.toString()) return;
+
+    // Always save the notification so it shows up in the bell panel later —
+    // "mute" only suppresses the live real-time push/toast, not the record itself.
+    const recipientUser = await User.findById(recipientId).select('notificationsMuted');
+    const isMuted = !!recipientUser?.notificationsMuted;
+
     const notif = await Notification.create({ recipient: recipientId, sender: senderId, type, message, postId });
+
+    // Muted → skip the real-time socket push entirely. The notification still exists in the
+    // DB and will be picked up next time the recipient calls GET /api/notifications (bell open).
+    if (isMuted) return;
+
     const populated = await Notification.findById(notif._id).populate('sender', 'name username avatarColor profilePicture');
     if (isUserOnline(recipientId.toString())) {
       io.to(recipientId.toString()).emit('notification', {
@@ -264,13 +325,89 @@ function emitFriendStatusUpdate(userIdA, userIdB, statusForA, statusForB) {
 
 // ------------------- Authentication Routes -------------------
 
-// POST /api/auth/signup
+// POST /api/auth/send-otp — signup se pehle email verify karne ke liye OTP bhejta hai
+app.post('/api/auth/send-otp', async (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
+    }
+
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      return res.status(409).json({ success: false, message: 'An account with this email already exists.' });
+    }
+
+    const otp = generateOtp();
+    const otpHash = hashOtp(otp);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await EmailOtp.findOneAndUpdate(
+      { email },
+      { email, otpHash, expiresAt, attempts: 0, verified: false },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    await sendOtpEmail(email, otp);
+
+    return res.status(200).json({
+      success: true,
+      message: `A verification code has been sent to ${email}. It expires in 10 minutes.`
+    });
+  } catch (error) {
+    console.error('Send OTP error:', error);
+    return res.status(500).json({ success: false, message: 'Could not send verification code. Please try again.' });
+  }
+});
+
+// POST /api/auth/verify-otp — explicit verify step so the frontend can confirm
+// the code is correct BEFORE the user finishes filling the rest of the form.
+// Signup still independently re-checks the same OTP record — this is a
+// fast-feedback pre-check, not a replacement for that server-side check.
+app.post('/api/auth/verify-otp', async (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+    const otp = (req.body.otp || '').toString().trim();
+
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Email and OTP are required.' });
+    }
+
+    const otpRecord = await EmailOtp.findOne({ email });
+    if (!otpRecord) {
+      return res.status(400).json({ success: false, message: 'No verification code was requested for this email. Please request one first.' });
+    }
+    if (otpRecord.expiresAt < new Date()) {
+      await otpRecord.deleteOne();
+      return res.status(400).json({ success: false, message: 'This verification code has expired. Please request a new one.' });
+    }
+    if (otpRecord.attempts >= 5) {
+      return res.status(429).json({ success: false, message: 'Too many incorrect attempts. Please request a new verification code.' });
+    }
+    if (otpRecord.otpHash !== hashOtp(otp)) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      return res.status(400).json({ success: false, message: 'Incorrect verification code.' });
+    }
+
+    otpRecord.verified = true;
+    await otpRecord.save();
+
+    return res.status(200).json({ success: true, message: 'Email verified.' });
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    return res.status(500).json({ success: false, message: 'Could not verify the code. Please try again.' });
+  }
+});
+
+// POST /api/auth/signup (requires a verified email OTP — call /api/auth/send-otp first)
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { name, username, email, password } = req.body;
+    const { name, username, email, password, otp } = req.body;
 
-    if (!name || !username || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Name, username, email, and password are required.' });
+    if (!name || !username || !email || !password || !otp) {
+      return res.status(400).json({ success: false, message: 'Name, username, email, password, and the emailed OTP are required.' });
     }
 
     const cleanUsername = username.trim().toLowerCase();
@@ -284,6 +421,24 @@ app.post('/api/auth/signup', async (req, res) => {
     }
     if (password.length < 8) {
       return res.status(400).json({ success: false, message: 'Password must be at least 8 characters long.' });
+    }
+
+    // ---- Verify the emailed OTP ----
+    const otpRecord = await EmailOtp.findOne({ email: cleanEmail });
+    if (!otpRecord) {
+      return res.status(400).json({ success: false, message: 'No verification code was requested for this email. Please request one first.' });
+    }
+    if (otpRecord.expiresAt < new Date()) {
+      await otpRecord.deleteOne();
+      return res.status(400).json({ success: false, message: 'This verification code has expired. Please request a new one.' });
+    }
+    if (otpRecord.attempts >= 5) {
+      return res.status(429).json({ success: false, message: 'Too many incorrect attempts. Please request a new verification code.' });
+    }
+    if (otpRecord.otpHash !== hashOtp(String(otp).trim())) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      return res.status(400).json({ success: false, message: 'Incorrect verification code.' });
     }
 
     const existingEmail = await User.findOne({ email: cleanEmail });
@@ -300,9 +455,14 @@ app.post('/api/auth/signup', async (req, res) => {
       name: name.trim(),
       username: cleanUsername,
       email: cleanEmail,
-      password
+      password,
+      emailVerified: true,
+      profileComplete: true
     });
     await newUser.save();
+
+    // OTP consumed — clean it up so it can't be reused
+    await otpRecord.deleteOne();
 
     const token = generateToken(newUser);
 
@@ -353,6 +513,16 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials.' });
     }
 
+    // Google-first-time user jisne abhi tak password set hi nahi kiya —
+    // clearer message do instead of a generic "Invalid credentials."
+    if (user.googleId && !user.profileComplete) {
+      return res.status(401).json({
+        success: false,
+        code: 'GOOGLE_SETUP_REQUIRED',
+        message: 'This account was created with Google. Please continue with Google to finish setting up your username and password.'
+      });
+    }
+
     const isMatch = await user.comparePassword(password);
     if (isMatch !== true) {
       return res.status(401).json({ success: false, message: 'Invalid credentials.' });
@@ -371,6 +541,7 @@ app.post('/api/auth/login', async (req, res) => {
         email: user.email,
         avatarColor: user.avatarColor,
         profilePicture: user.profilePicture?.url || null,
+        notificationsMuted: !!user.notificationsMuted,
         isAdmin: !!ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL
       }
     });
@@ -406,6 +577,8 @@ app.post('/api/auth/google', async (req, res) => {
             $or: [{ googleId }, { email: email.toLowerCase() }]
         });
 
+        let isNewUser = false;
+
         if (user) {
             let updated = false;
             if (!user.googleId) {
@@ -418,7 +591,10 @@ app.post('/api/auth/google', async (req, res) => {
             }
             if (updated) await user.save();
         } else {
-            const baseUsername = name.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase().slice(0, 15) || 'user';
+            isNewUser = true;
+            // Temporary placeholder username — sirf DB uniqueness ke liye.
+            // User ko mandatory setup step mein apna real username choose karna hoga.
+            const baseUsername = ('user' + name.replace(/[^a-zA-Z0-9_]/g, '')).toLowerCase().slice(0, 15) || 'user';
             let uniqueUsername = baseUsername;
             let count = 1;
             while (await User.findOne({ username: uniqueUsername })) {
@@ -432,13 +608,16 @@ app.post('/api/auth/google', async (req, res) => {
                 username: uniqueUsername,
                 email: email.toLowerCase(),
                 googleId: googleId,
-                profilePicture: { url: picture, publicId: null }
+                profilePicture: { url: picture, publicId: null },
+                emailVerified: true, // Google ne already email verify kar diya hai
+                profileComplete: false // Mandatory Signup/Profile-completion step abhi baaki hai
             });
             await user.save();
         }
 
         // Generate Token
         const token = generateToken(user);
+        const needsSetup = !user.profileComplete;
 
         // Set Cookie (Taaki page refresh hone par login state bani rahe)
         res.cookie('token', token, {
@@ -450,8 +629,15 @@ app.post('/api/auth/google', async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: `Welcome ${user.name || user.username}!`,
+            message: needsSetup
+              ? `Welcome ${user.name}! Please finish setting up your account.`
+              : `Welcome ${user.name || user.username}!`,
             token,
+            isNewUser,
+            // Frontend: agar true hai toh mandatory Signup/Profile-completion
+            // page par redirect karo, koi aur protected route call mat karo —
+            // server bhi enforce karta hai (requireAuth middleware).
+            needsSetup,
             user: {
                 id: user._id,
                 name: user.name,
@@ -459,6 +645,8 @@ app.post('/api/auth/google', async (req, res) => {
                 email: user.email,
                 avatarColor: user.avatarColor,
                 profilePicture: user.profilePicture?.url || null,
+                notificationsMuted: !!user.notificationsMuted,
+                profileComplete: user.profileComplete,
                 isAdmin: !!ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL
             }
         });
@@ -466,6 +654,80 @@ app.post('/api/auth/google', async (req, res) => {
         console.error('Google Login Error:', error);
         return res.status(401).json({ success: false, message: 'Google authentication failed. Invalid token.' });
     }
+});
+
+// POST /api/auth/complete-profile — mandatory step for first-time Google users
+// to set a unique username + password. Exempt from the profile-completion gate
+// in requireAuth so an incomplete-profile token can actually call this route.
+app.post('/api/auth/complete-profile', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    if (!user.googleId) {
+      return res.status(400).json({ success: false, message: 'This step only applies to accounts created via Google.' });
+    }
+    if (user.profileComplete) {
+      return res.status(400).json({ success: false, message: 'Your profile is already complete.' });
+    }
+
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Username and password are required.' });
+    }
+
+    const cleanUsername = username.trim().toLowerCase();
+    if (cleanUsername.length < 3 || cleanUsername.length > 30) {
+      return res.status(400).json({ success: false, message: 'Username must be 3–30 characters long.' });
+    }
+    if (!/^[a-z0-9_.]+$/.test(cleanUsername)) {
+      return res.status(400).json({ success: false, message: 'Username can only contain lowercase letters, numbers, underscores, and dots.' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters long.' });
+    }
+
+    if (cleanUsername !== user.username) {
+      const existingUsername = await User.findOne({ username: cleanUsername });
+      if (existingUsername) {
+        return res.status(409).json({ success: false, message: 'This username is already taken. Please choose another one.' });
+      }
+      user.username = cleanUsername;
+    }
+
+    user.password = password; // pre('save') hook hashes it
+    user.profileComplete = true;
+    await user.save();
+
+    // Naya token — ab profileComplete: true carry karega, gate hat jaayega
+    const token = generateToken(user);
+
+    return res.status(200).json({
+      success: true,
+      message: `All set, ${user.name}! Your account is ready.`,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        avatarColor: user.avatarColor,
+        profilePicture: user.profilePicture?.url || null,
+        notificationsMuted: !!user.notificationsMuted,
+        profileComplete: user.profileComplete,
+        isAdmin: !!ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL
+      }
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || 'field';
+      return res.status(409).json({ success: false, message: `This ${field} is already in use.` });
+    }
+    console.error('Complete profile error:', error);
+    return res.status(500).json({ success: false, message: 'Server error while completing profile.' });
+  }
 });
 // GET /api/auth/me - verify token & fetch current user
 app.get('/api/auth/me', requireAuth, async (req, res) => {
@@ -476,6 +738,7 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
     }
     return res.status(200).json({
       success: true,
+      needsSetup: !user.profileComplete,
       user: {
         id: user._id,
         name: user.name,
@@ -483,6 +746,8 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
         email: user.email,
         avatarColor: user.avatarColor,
         profilePicture: user.profilePicture?.url || null,
+        notificationsMuted: !!user.notificationsMuted,
+        profileComplete: user.profileComplete,
         isAdmin: !!ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL
       }
     });
@@ -680,6 +945,7 @@ app.patch('/api/users/profile', requireAuth, async (req, res) => {
         email: user.email,
         avatarColor: user.avatarColor,
         profilePicture: user.profilePicture?.url || null,
+        notificationsMuted: !!user.notificationsMuted,
         isAdmin: !!ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL
       }
     });
@@ -716,6 +982,8 @@ app.delete('/api/users/profile-picture', requireAuth, async (req, res) => {
         email: user.email,
         avatarColor: user.avatarColor,
         profilePicture: null,
+        notificationsMuted: !!user.notificationsMuted,
+        profileComplete: user.profileComplete,
         isAdmin: !!ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL
       }
     });
@@ -749,17 +1017,21 @@ app.patch('/api/users/profile-picture', requireAuth, uploadProfilePic.single('av
     };
     await user.save();
 
+    const pictureUrl = user.profilePicture?.url || null;
     return res.status(200).json({
       success: true,
       message: 'Profile picture updated successfully!',
-      profilePicture: user.profilePicture.url,
+      // Top-level URL kept for legacy callers (frontend stores this directly)
+      profilePicture: pictureUrl,
       user: {
         id: user._id,
         name: user.name,
         username: user.username,
         email: user.email,
         avatarColor: user.avatarColor,
-        profilePicture: user.profilePicture.url,
+        profilePicture: pictureUrl,
+        notificationsMuted: !!user.notificationsMuted,
+        profileComplete: user.profileComplete,
         isAdmin: !!ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL
       }
     });
@@ -1209,6 +1481,8 @@ app.post('/api/posts/:id/comment', requireAuth, async (req, res) => {
       userId: req.user.id,
       userName: user.name,
       username: user.username,
+      profilePicture: user.profilePicture?.url || null,
+      avatarColor: user.avatarColor || '#d4a437',
       text: text.trim(),
       createdAt: new Date()
     };
@@ -1241,9 +1515,27 @@ app.post('/api/posts/:id/comment', requireAuth, async (req, res) => {
 // GET /api/posts/:id/comments
 app.get('/api/posts/:id/comments', async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).select('comments');
+    const post = await Post.findById(req.params.id)
+      .select('comments')
+      .populate('comments.userId', 'name username avatarColor profilePicture');
     if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
-    return res.status(200).json({ success: true, count: post.comments.length, data: post.comments });
+
+    // Prefer the live populated user (keeps older comments in sync with profile changes);
+    // fall back to the snapshot stored on the comment itself for resilience if the user was deleted.
+    const formatted = post.comments.map(c => {
+      const obj = c.toObject();
+      const liveUser = obj.userId && obj.userId.name !== undefined ? obj.userId : null;
+      return {
+        ...obj,
+        userId: liveUser ? liveUser._id : obj.userId,
+        userName: liveUser?.name || obj.userName,
+        username: liveUser?.username || obj.username,
+        profilePicture: liveUser?.profilePicture?.url || obj.profilePicture || null,
+        avatarColor: liveUser?.avatarColor || obj.avatarColor || '#d4a437'
+      };
+    });
+
+    return res.status(200).json({ success: true, count: formatted.length, data: formatted });
   } catch (error) {
     console.error('Error fetching post comments:', error);
     return res.status(500).json({ success: false, message: 'Server error while fetching comments.' });
@@ -1641,9 +1933,27 @@ app.post('/api/thoughts/:id/save', requireAuth, async (req, res) => {
 
 app.get('/api/thoughts/:id/comments', async (req, res) => {
   try {
-    const thought = await Thought.findById(req.params.id).select('comments');
+    const thought = await Thought.findById(req.params.id)
+      .select('comments')
+      .populate('comments.userId', 'name username avatarColor profilePicture');
     if (!thought) return res.status(404).json({ success: false, message: 'Thought not found.' });
-    return res.status(200).json({ success: true, count: thought.comments.length, data: thought.comments });
+
+    // Prefer the live populated user (keeps older comments in sync with profile changes);
+    // fall back to the snapshot stored on the comment itself for resilience if the user was deleted.
+    const formatted = thought.comments.map(c => {
+      const obj = c.toObject();
+      const liveUser = obj.userId && obj.userId.name !== undefined ? obj.userId : null;
+      return {
+        ...obj,
+        userId: liveUser ? liveUser._id : obj.userId,
+        userName: liveUser?.name || obj.userName,
+        username: liveUser?.username || obj.username,
+        profilePicture: liveUser?.profilePicture?.url || obj.profilePicture || null,
+        avatarColor: liveUser?.avatarColor || obj.avatarColor || '#d4a437'
+      };
+    });
+
+    return res.status(200).json({ success: true, count: formatted.length, data: formatted });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Server error.' });
   }
@@ -1657,12 +1967,14 @@ app.post('/api/thoughts/:id/comment', requireAuth, async (req, res) => {
     const thought = await Thought.findById(req.params.id);
     if (!thought) return res.status(404).json({ success: false, message: 'Thought not found.' });
 
-    const user = await User.findById(req.user.id).select('name username');
+    const user = await User.findById(req.user.id).select('name username avatarColor profilePicture');
 
     const newComment = {
       userId: req.user.id,
       userName: user.name,
       username: user.username,
+      profilePicture: user.profilePicture?.url || null,
+      avatarColor: user.avatarColor || '#d4a437',
       text: text.trim(),
       createdAt: new Date()
     };
@@ -1873,6 +2185,24 @@ app.patch('/api/notifications/:id/read', requireAuth, async (req, res) => {
   }
 });
 
+// PATCH /api/notifications/mute-toggle — flips the current user's notificationsMuted flag.
+// Optionally accepts { muted: true|false } in the body to set an explicit state instead of toggling.
+app.patch('/api/notifications/mute-toggle', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('notificationsMuted');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    const nextState = typeof req.body?.muted === 'boolean' ? req.body.muted : !user.notificationsMuted;
+    user.notificationsMuted = nextState;
+    await user.save();
+
+    return res.status(200).json({ success: true, notificationsMuted: user.notificationsMuted });
+  } catch (err) {
+    console.error('Notification mute-toggle error:', err.message);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
 // ------------------- Admin API Routes -------------------
 app.get('/api/admin/contacts', verifyAdmin, async (req, res) => {
   try {
@@ -2010,6 +2340,9 @@ io.use((socket, next) => {
   if (!token) return next(new Error('Authentication required.'));
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.profileComplete === false) {
+      return next(new Error('PROFILE_INCOMPLETE'));
+    }
     socket.user = decoded;
     next();
   } catch (err) {

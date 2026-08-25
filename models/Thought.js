@@ -9,6 +9,9 @@ const commentSchema = new mongoose.Schema(
     },
     userName: { type: String, required: true, trim: true },
     username: { type: String, trim: true, default: '' },
+    // Snapshot of the commenter's avatar at comment time (see Post.js postCommentSchema for rationale)
+    profilePicture: { type: String, default: null },
+    avatarColor: { type: String, default: '#d4a437' },
     text: {
       type: String,
       required: [true, 'Comment text is required'],

@@ -5,6 +5,10 @@ const postCommentSchema = new mongoose.Schema(
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     userName: { type: String, required: true, trim: true },
     username: { type: String, trim: true, default: '' },
+    // Snapshot of the commenter's avatar at comment time, so the comment still renders correctly
+    // even if the user later changes their picture, and so we don't need an extra populate on every read.
+    profilePicture: { type: String, default: null },
+    avatarColor: { type: String, default: '#d4a437' },
     text: { type: String, required: true, trim: true, minlength: 1, maxlength: 500 },
     createdAt: { type: Date, default: Date.now }
   },

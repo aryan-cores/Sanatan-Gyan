@@ -553,15 +553,6 @@
       display: none;
     }
 
-    /* Feature cards row (Read, Listen & Understand) — horizontal scroll on mobile only */
-    .feature-cards-scroll {
-      scrollbar-width: none;
-    }
-
-    .feature-cards-scroll::-webkit-scrollbar {
-      display: none;
-    }
-
     .ig-story-item {
       display: flex;
       flex-direction: column;
