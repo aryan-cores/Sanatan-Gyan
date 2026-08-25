@@ -37,6 +37,15 @@ const allowedOrigins = (process.env.ALLOWED_ORIGIN || 'http://localhost:5000,htt
   .filter(Boolean);
 
 const app = express();
+
+// Render (aur zyada tar PaaS) app ko reverse proxy ke peeche run karte hain
+// aur X-Forwarded-For header set karte hain. Ye batao ki sirf 1 proxy hop
+// trust karo — isse express-rate-limit har user ka sahi real IP pehchanta
+// hai (warna "ValidationError: X-Forwarded-For header is set but trust
+// proxy is false" wala warning aata hai aur rate limiting sahi se kaam
+// nahi karti).
+app.set('trust proxy', 1);
+
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, {
   cors: { origin: allowedOrigins, credentials: true }
