@@ -5,27 +5,19 @@ let transporter = null;
 function getTransporter() {
   if (transporter) return transporter;
 
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.warn(
-      '⚠️ SMTP_HOST / SMTP_USER / SMTP_PASS set nahi hain — OTP emails send nahi ho paayenge. ' +
+      '⚠️ SMTP_USER / SMTP_PASS set nahi hain — OTP emails send nahi ho paayenge. ' +
       '.env.example dekho aur mail credentials set karo.'
     );
     return null;
   }
 
-  const port = Number(process.env.SMTP_PORT) || 465;
-  const isSecure = port === 465;
-
   transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: port,
-    secure: isSecure,
+    service: 'gmail',
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS
-    },
-    tls: {
-      rejectUnauthorized: false
     }
   });
 
@@ -40,7 +32,6 @@ async function sendOtpEmail(toEmail, otp) {
     return { delivered: false };
   }
 
-  // Handle from address cleanly without broken duplicate brackets
   let fromHeader = process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@sanatan-gyan.local';
   if (!fromHeader.includes('<')) {
     fromHeader = `"Sanatan Gyan" <${fromHeader}>`;
