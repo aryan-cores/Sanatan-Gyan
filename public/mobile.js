@@ -280,103 +280,31 @@
       }
     }
 
-    /* Like toggling — shared by the rail heart button and the
-       double-tap gesture below, so both stay perfectly in sync and both
-       persist the same way via POST /api/posts/:id/like. */
-    async function performReelLike(opts) {
-      opts = opts || {};
-      const btn = card.querySelector('[data-action="like"]');
+    /* Like button */
+    card.querySelector('[data-action="like"]').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const btn = e.currentTarget;
       if (!token) {
         if (typeof showToast === 'function') showToast('Please log in to like', 'info');
         return;
       }
       const isLiked = btn.dataset.liked === 'true';
-      // Double-tap mirrors Instagram: it only ever *likes*, never unlikes.
-      if (opts.likeOnly && isLiked) return;
-
       const countEl = btn.querySelector('.reel-action-count');
       const iconEl = btn.querySelector('.reel-action-icon');
       const currentCount = parseInt(countEl.textContent) || 0;
-      const nextLiked = opts.likeOnly ? true : !isLiked;
 
-      // Optimistic UI update, rolled back on failure
-      btn.dataset.liked = nextLiked ? 'true' : 'false';
-      iconEl.textContent = nextLiked ? '❤️' : '🤍';
-      countEl.textContent = nextLiked ? (isLiked ? currentCount : currentCount + 1) : Math.max(0, currentCount - 1);
-      btn.classList.toggle('liked', nextLiked);
+      btn.dataset.liked = isLiked ? 'false' : 'true';
+      iconEl.textContent = isLiked ? '🤍' : '❤️';
+      countEl.textContent = isLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
+      btn.classList.toggle('liked', !isLiked);
 
       try {
-        const res = await fetch(`/api/posts/${_id}/like`, {
+        await fetch(`/api/posts/${_id}/like`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        const data = await res.json();
-        if (data && data.success) {
-          // Reconcile with the server's authoritative liked/count state
-          btn.dataset.liked = data.liked ? 'true' : 'false';
-          iconEl.textContent = data.liked ? '❤️' : '🤍';
-          countEl.textContent = data.likeCount;
-          btn.classList.toggle('liked', data.liked);
-        }
-      } catch (_) {
-        // Roll back optimistic update on network failure
-        btn.dataset.liked = isLiked ? 'true' : 'false';
-        iconEl.textContent = isLiked ? '❤️' : '🤍';
-        countEl.textContent = currentCount;
-        btn.classList.toggle('liked', isLiked);
-      }
-    }
-
-    card.querySelector('[data-action="like"]').addEventListener('click', (e) => {
-      e.stopPropagation();
-      performReelLike();
+      } catch (_) {}
     });
-
-    /* Double-tap-to-like directly on the video/photo — Instagram's
-       signature gesture. Also pops a floating heart where the user tapped. */
-    (function setupReelDoubleTap() {
-      const media = card.querySelector('.reel-media');
-      let lastTap = 0;
-      let tapTimer = null;
-
-      function popHeart(x, y) {
-        const heart = document.createElement('div');
-        heart.className = 'reel-doubletap-heart';
-        heart.textContent = '❤️';
-        heart.style.left = `${x}px`;
-        heart.style.top = `${y}px`;
-        card.appendChild(heart);
-        heart.addEventListener('animationend', () => heart.remove());
-      }
-
-      card.addEventListener('touchend', (e) => {
-        if (e.target.closest('.reel-actions') || e.target.closest('.reel-sound-badge')) return;
-        const now = Date.now();
-        const touch = e.changedTouches[0];
-        const rect = card.getBoundingClientRect();
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
-
-        if (now - lastTap < 300) {
-          clearTimeout(tapTimer);
-          lastTap = 0;
-          popHeart(x, y);
-          performReelLike({ likeOnly: true });
-        } else {
-          lastTap = now;
-          clearTimeout(tapTimer);
-          tapTimer = setTimeout(() => { lastTap = 0; }, 300);
-        }
-      }, { passive: true });
-
-      /* Desktop/mouse fallback */
-      card.addEventListener('dblclick', (e) => {
-        if (e.target.closest('.reel-actions') || e.target.closest('.reel-sound-badge')) return;
-        const rect = card.getBoundingClientRect();
-        popHeart(e.clientX - rect.left, e.clientY - rect.top);
-        performReelLike({ likeOnly: true });
-      });
-    })();
 
     /* Comment button */
     card.querySelector('[data-action="comment"]').addEventListener('click', (e) => {
@@ -552,9 +480,6 @@
     container.classList.add('reels-open');
     reelsOpen = true;
     document.body.style.overflow = 'hidden';
-    // Fullscreen Reels view is open — hide the floating Saarthi widget so
-    // it never overlaps the bottom-left creator info / right action rail.
-    document.body.classList.add('fullscreen-media-open');
 
     /* Load reels data if not already loaded */
     if (!reelsLoaded) {
@@ -605,11 +530,6 @@
     container.classList.remove('reels-open');
     reelsOpen = false;
     document.body.style.overflow = '';
-    // Only restore Saarthi if the post-detail lightbox isn't also open
-    const postDetailOpen = !document.getElementById('postDetailModal')?.classList.contains('hidden');
-    if (!postDetailOpen) {
-      document.body.classList.remove('fullscreen-media-open');
-    }
   }
 
   /* ────────────────────────────────────────────────────────────────
