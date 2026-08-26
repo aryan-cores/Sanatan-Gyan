@@ -22,10 +22,16 @@ const User = require('./models/User');
 const Post = require('./models/Post');
 const Message = require('./models/Message');
 const EmailOtp = require('./models/EmailOtp');
+const ChatMessage = require('./models/ChatMessage');
 
 const cloudinary = require('./config/cloudinary');
 const { uploadProfilePic, uploadPost } = require('./config/multer');
 const { sendOtpEmail } = require('./config/mailer');
+// Point 5 (Performance): in-memory read-through cache for hot, frequently
+// requested endpoints (community feed, posts feed). See config/cache.js.
+const cache = require('./config/cache');
+// Point 6 (Saarthi AI): spiritual-guidance chatbot response engine.
+const { getSaarthiReply } = require('./config/saarthi');
 
 // ── Allowed CORS origins ─────────────────────────────────────────────
 // Supports a comma-separated list in ALLOWED_ORIGIN (e.g.
@@ -1105,6 +1111,150 @@ app.post('/api/users/:id/follow', requireAuth, async (req, res) => {
     return res.status(500).json({ success: false, message: err.message || 'Server error while updating follow status.' });
   }
 });
+// DELETE /api/users/:id/unfollow — explicit unfollow (used by the
+// Followers/Following drawer's one-tap "Unfollow" button). Idempotent: safe
+// to call even if already not following.
+app.delete('/api/users/:id/unfollow', requireAuth, async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const myId = (req.user?.id || req.user?._id)?.toString();
+
+    if (!mongoose.Types.ObjectId.isValid(targetId)) {
+      return res.status(400).json({ success: false, message: 'Invalid target user ID.' });
+    }
+
+    const [me, target] = await Promise.all([
+      User.findById(myId),
+      User.findById(targetId)
+    ]);
+    if (!target || !me) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    me.following = (me.following || []).filter(id => id && id.toString() !== targetId);
+    target.followers = (target.followers || []).filter(id => id && id.toString() !== myId);
+    await Promise.all([me.save(), target.save()]);
+
+    return res.status(200).json({
+      success: true,
+      isFollowing: false,
+      following: false,
+      followerCount: target.followers.length,
+      message: `Unfollowed ${target.name}`
+    });
+  } catch (err) {
+    console.error('Unfollow API Error:', err);
+    return res.status(500).json({ success: false, message: 'Server error while unfollowing.' });
+  }
+});
+
+// DELETE /api/users/followers/:id — remove someone FROM MY followers list
+// (i.e. "Remove" in my own Followers drawer). `:id` is the follower being
+// removed, the acting user is the profile owner (req.user).
+app.delete('/api/users/followers/:id', requireAuth, async (req, res) => {
+  try {
+    const followerId = req.params.id;
+    const myId = (req.user?.id || req.user?._id)?.toString();
+
+    if (!mongoose.Types.ObjectId.isValid(followerId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID.' });
+    }
+
+    const [me, follower] = await Promise.all([
+      User.findById(myId),
+      User.findById(followerId)
+    ]);
+    if (!me || !follower) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    me.followers = (me.followers || []).filter(id => id && id.toString() !== followerId);
+    follower.following = (follower.following || []).filter(id => id && id.toString() !== myId);
+    await Promise.all([me.save(), follower.save()]);
+
+    return res.status(200).json({
+      success: true,
+      followerCount: me.followers.length,
+      message: `Removed ${follower.name} from your followers.`
+    });
+  } catch (err) {
+    console.error('Remove follower API Error:', err);
+    return res.status(500).json({ success: false, message: 'Server error while removing follower.' });
+  }
+});
+
+// GET /api/users/:id/followers?page=&limit= — dedicated, paginated, lean
+// followers list. Point 4 (dedicated drawer) + Point 5 (lean/projected,
+// doesn't force the whole list to be embedded in the profile payload).
+app.get('/api/users/:id/followers', optionalAuth, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID.' });
+    }
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, Math.min(50, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
+
+    const owner = await User.findById(userId).select('followers').lean();
+    if (!owner) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    const ids = (owner.followers || []).slice(skip, skip + limit);
+    const users = await User.find({ _id: { $in: ids } })
+      .select('name username avatarColor profilePicture')
+      .lean();
+    // Preserve original follower order (most-recently-added last, per schema).
+    const order = new Map(ids.map((id, i) => [id.toString(), i]));
+    users.sort((a, b) => (order.get(a._id.toString()) ?? 0) - (order.get(b._id.toString()) ?? 0));
+
+    return res.status(200).json({
+      success: true,
+      total: (owner.followers || []).length,
+      hasMore: skip + limit < (owner.followers || []).length,
+      data: users.map(u => ({
+        id: u._id, name: u.name, username: u.username, avatarColor: u.avatarColor,
+        profilePicture: u.profilePicture?.url || null
+      }))
+    });
+  } catch (err) {
+    console.error('Followers list error:', err);
+    return res.status(500).json({ success: false, message: 'Server error while fetching followers.' });
+  }
+});
+
+// GET /api/users/:id/following?page=&limit= — dedicated, paginated, lean
+// following list (mirror of the followers endpoint above).
+app.get('/api/users/:id/following', optionalAuth, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID.' });
+    }
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, Math.min(50, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
+
+    const owner = await User.findById(userId).select('following').lean();
+    if (!owner) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    const ids = (owner.following || []).slice(skip, skip + limit);
+    const users = await User.find({ _id: { $in: ids } })
+      .select('name username avatarColor profilePicture')
+      .lean();
+    const order = new Map(ids.map((id, i) => [id.toString(), i]));
+    users.sort((a, b) => (order.get(a._id.toString()) ?? 0) - (order.get(b._id.toString()) ?? 0));
+
+    return res.status(200).json({
+      success: true,
+      total: (owner.following || []).length,
+      hasMore: skip + limit < (owner.following || []).length,
+      data: users.map(u => ({
+        id: u._id, name: u.name, username: u.username, avatarColor: u.avatarColor,
+        profilePicture: u.profilePicture?.url || null
+      }))
+    });
+  } catch (err) {
+    console.error('Following list error:', err);
+    return res.status(500).json({ success: false, message: 'Server error while fetching following.' });
+  }
+});
+
 // ------------------- Post (Photo / Reel) Routes -------------------
 
 // POST /api/posts - Create Post
@@ -1165,6 +1315,7 @@ app.post('/api/posts', requireAuth, uploadPost.single('media'), async (req, res)
       savedByMe: false
     };
     io.emit('new_feed_post', feedBroadcastPost);
+    cache.delByPrefix('feed:'); // Point 5: invalidate stale posts/most-liked cache
 
     return res.status(201).json({ success: true, message: 'Post shared successfully!', data: newPost });
   } catch (error) {
@@ -1194,11 +1345,24 @@ app.get('/api/posts', optionalAuth, async (req, res) => {
       filter.$or = [{ caption: regex }, { author: { $in: authorIds } }];
     }
 
-    const posts = await Post.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('author', 'name username avatarColor profilePicture');
+    // Point 5 (Performance): the post list itself (before per-user flags like
+    // likedByMe/followedByMe are layered on) is identical for every visitor
+    // requesting the same filter/page, so cache just that part. `.lean()`
+    // returns plain JS objects instead of full Mongoose documents — much
+    // cheaper to build and serialize for a read-heavy endpoint like this.
+    const feedCacheKey = `feed:posts:${JSON.stringify(filter)}:${skip}:${limit}`;
+    const { posts, totalPosts } = await cache.wrap(feedCacheKey, 20, async () => {
+      const [posts, totalPosts] = await Promise.all([
+        Post.find(filter)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .populate('author', 'name username avatarColor profilePicture')
+          .lean(),
+        Post.countDocuments(filter)
+      ]);
+      return { posts, totalPosts };
+    });
 
     const currentUserId = req.user ? req.user.id : null;
 
@@ -1208,7 +1372,7 @@ app.get('/api/posts', optionalAuth, async (req, res) => {
     // since the frontend feed card reads exactly this field.
     let followingIds = [];
     if (currentUserId) {
-      const me = await User.findById(currentUserId).select('following');
+      const me = await User.findById(currentUserId).select('following').lean();
       followingIds = me && me.following ? me.following.map((id) => id.toString()) : [];
     }
 
@@ -1234,14 +1398,12 @@ app.get('/api/posts', optionalAuth, async (req, res) => {
     }));
 
     if (currentUserId) {
-      const me = await User.findById(currentUserId).select('savedPosts');
+      const me = await User.findById(currentUserId).select('savedPosts').lean();
       if (me && me.savedPosts && me.savedPosts.length) {
         const savedSet = new Set(me.savedPosts.map((id) => id.toString()));
         formatted.forEach((p) => { p.savedByMe = savedSet.has(p._id.toString()); });
       }
     }
-
-    const totalPosts = await Post.countDocuments(filter);
 
     return res.status(200).json({
       success: true,
@@ -1264,19 +1426,29 @@ app.get('/api/posts/most-liked', optionalAuth, async (req, res) => {
 
     let followingIds = [];
     if (currentUserId) {
-      const me = await User.findById(currentUserId).select('following');
+      const me = await User.findById(currentUserId).select('following').lean();
       followingIds = me && me.following ? me.following.map(id => id.toString()) : [];
     }
 
-    const topPhotos = await Post.find({ mediaType: 'photo' })
-      .sort({ 'likes.length': -1, createdAt: -1 })
-      .limit(limit)
-      .populate('author', 'name username avatarColor profilePicture');
-
-    const topReels = await Post.find({ mediaType: 'reel' })
-      .sort({ 'likes.length': -1, createdAt: -1 })
-      .limit(limit)
-      .populate('author', 'name username avatarColor profilePicture');
+    // Point 5 (Performance): "most liked" is the same for every visitor at a
+    // given `limit`, so it's cached slightly longer than the main feed (it
+    // changes less often) and served via `.lean()`.
+    const mostLikedCacheKey = `feed:most-liked:${limit}`;
+    const { topPhotos, topReels } = await cache.wrap(mostLikedCacheKey, 45, async () => {
+      const [topPhotos, topReels] = await Promise.all([
+        Post.find({ mediaType: 'photo' })
+          .sort({ 'likes.length': -1, createdAt: -1 })
+          .limit(limit)
+          .populate('author', 'name username avatarColor profilePicture')
+          .lean(),
+        Post.find({ mediaType: 'reel' })
+          .sort({ 'likes.length': -1, createdAt: -1 })
+          .limit(limit)
+          .populate('author', 'name username avatarColor profilePicture')
+          .lean()
+      ]);
+      return { topPhotos, topReels };
+    });
 
     const format = (p) => ({
       _id: p._id,
@@ -1499,6 +1671,7 @@ app.post('/api/posts/:id/comment', requireAuth, async (req, res) => {
     if (!Array.isArray(post.comments)) post.comments = [];
     post.comments.push(newComment);
     await post.save();
+    cache.delByPrefix('feed:'); // Point 5: comment counts must not be served stale
 
     if (post.author.toString() !== req.user.id) {
       await sendNotification(
@@ -1522,25 +1695,36 @@ app.post('/api/posts/:id/comment', requireAuth, async (req, res) => {
 });
 
 // GET /api/posts/:id/comments
-app.get('/api/posts/:id/comments', async (req, res) => {
+app.get('/api/posts/:id/comments', optionalAuth, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
       .select('comments')
       .populate('comments.userId', 'name username avatarColor profilePicture');
     if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
 
+    // Point 4: resolve the viewer's `following` list once so every comment
+    // can carry a `followedByMe` flag for the inline Follow button.
+    const currentUserId = req.user ? req.user.id : null;
+    let followingIds = [];
+    if (currentUserId) {
+      const me = await User.findById(currentUserId).select('following').lean();
+      followingIds = me && me.following ? me.following.map((id) => id.toString()) : [];
+    }
+
     // Prefer the live populated user (keeps older comments in sync with profile changes);
     // fall back to the snapshot stored on the comment itself for resilience if the user was deleted.
     const formatted = post.comments.map(c => {
       const obj = c.toObject();
       const liveUser = obj.userId && obj.userId.name !== undefined ? obj.userId : null;
+      const commenterId = liveUser ? liveUser._id.toString() : (obj.userId ? obj.userId.toString() : null);
       return {
         ...obj,
         userId: liveUser ? liveUser._id : obj.userId,
         userName: liveUser?.name || obj.userName,
         username: liveUser?.username || obj.username,
         profilePicture: liveUser?.profilePicture?.url || obj.profilePicture || null,
-        avatarColor: liveUser?.avatarColor || obj.avatarColor || '#d4a437'
+        avatarColor: liveUser?.avatarColor || obj.avatarColor || '#d4a437',
+        followedByMe: commenterId ? followingIds.includes(commenterId) : false
       };
     });
 
@@ -1619,6 +1803,7 @@ app.delete('/api/posts/:id', requireAuth, async (req, res) => {
     }
 
     await Post.findByIdAndDelete(req.params.id);
+    cache.delByPrefix('feed:'); // Point 5: removed post must not linger in cache
     return res.status(200).json({ success: true, message: 'Post deleted successfully.' });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Server error while deleting post.' });
@@ -1832,6 +2017,7 @@ app.post('/api/thoughts', optionalAuth, async (req, res) => {
       content
     });
     await newThought.save();
+    cache.delByPrefix('thoughts:approved:'); // Point 5: invalidate stale feed cache
     return res.status(201).json({ success: true, message: 'Thought submitted for review!', data: newThought });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Server error.' });
@@ -1844,12 +2030,23 @@ app.get('/api/thoughts/approved', optionalAuth, async (req, res) => {
     const limit = Math.max(1, Math.min(50, parseInt(req.query.limit, 10) || 6));
     const skip = (page - 1) * limit;
 
-    const totalCount = await Thought.countDocuments({ status: 'Approved' });
-    const thoughts = await Thought.find({ status: 'Approved' })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .select('author authorName username title category content likes comments createdAt');
+    // Point 5 (Performance): the (author-agnostic) list of approved thoughts
+    // for a given page/limit is identical for every visitor, so it's cached
+    // for a short window. `.lean()` skips Mongoose document hydration —
+    // meaningfully faster for read-only payloads like this.
+    const cacheKey = `thoughts:approved:${page}:${limit}`;
+    const { totalCount, thoughts } = await cache.wrap(cacheKey, 20, async () => {
+      const [totalCount, thoughts] = await Promise.all([
+        Thought.countDocuments({ status: 'Approved' }),
+        Thought.find({ status: 'Approved' })
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .select('author authorName username title category content likes comments createdAt')
+          .lean()
+      ]);
+      return { totalCount, thoughts };
+    });
 
     const currentUserId = req.user ? req.user.id : null;
 
@@ -1869,7 +2066,7 @@ app.get('/api/thoughts/approved', optionalAuth, async (req, res) => {
     }));
 
     if (currentUserId) {
-      const me = await User.findById(currentUserId).select('savedThoughts');
+      const me = await User.findById(currentUserId).select('savedThoughts').lean();
       if (me && me.savedThoughts && me.savedThoughts.length) {
         const savedSet = new Set(me.savedThoughts.map((id) => id.toString()));
         formatted.forEach((t) => { t.savedByMe = savedSet.has(t._id.toString()); });
@@ -1908,6 +2105,7 @@ app.post('/api/thoughts/:id/like', requireAuth, async (req, res) => {
       liked = false;
     }
     await thought.save();
+    cache.delByPrefix('thoughts:approved:'); // Point 5: like counts must not be served stale
 
     return res.status(200).json({ success: true, message: liked ? 'Liked!' : 'Unliked.', liked, likeCount: thought.likes.length });
   } catch (error) {
@@ -1940,25 +2138,36 @@ app.post('/api/thoughts/:id/save', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/thoughts/:id/comments', async (req, res) => {
+app.get('/api/thoughts/:id/comments', optionalAuth, async (req, res) => {
   try {
     const thought = await Thought.findById(req.params.id)
       .select('comments')
       .populate('comments.userId', 'name username avatarColor profilePicture');
     if (!thought) return res.status(404).json({ success: false, message: 'Thought not found.' });
 
+    // Point 4: resolve the viewer's `following` list once so every comment
+    // can carry a `followedByMe` flag for the inline Follow button.
+    const currentUserId = req.user ? req.user.id : null;
+    let followingIds = [];
+    if (currentUserId) {
+      const me = await User.findById(currentUserId).select('following').lean();
+      followingIds = me && me.following ? me.following.map((id) => id.toString()) : [];
+    }
+
     // Prefer the live populated user (keeps older comments in sync with profile changes);
     // fall back to the snapshot stored on the comment itself for resilience if the user was deleted.
     const formatted = thought.comments.map(c => {
       const obj = c.toObject();
       const liveUser = obj.userId && obj.userId.name !== undefined ? obj.userId : null;
+      const commenterId = liveUser ? liveUser._id.toString() : (obj.userId ? obj.userId.toString() : null);
       return {
         ...obj,
         userId: liveUser ? liveUser._id : obj.userId,
         userName: liveUser?.name || obj.userName,
         username: liveUser?.username || obj.username,
         profilePicture: liveUser?.profilePicture?.url || obj.profilePicture || null,
-        avatarColor: liveUser?.avatarColor || obj.avatarColor || '#d4a437'
+        avatarColor: liveUser?.avatarColor || obj.avatarColor || '#d4a437',
+        followedByMe: commenterId ? followingIds.includes(commenterId) : false
       };
     });
 
@@ -1991,6 +2200,7 @@ app.post('/api/thoughts/:id/comment', requireAuth, async (req, res) => {
     if (!Array.isArray(thought.comments)) thought.comments = [];
     thought.comments.push(newComment);
     await thought.save();
+    cache.delByPrefix('thoughts:approved:'); // Point 5: comment counts must not be served stale
 
     return res.status(201).json({
       success: true,
@@ -2101,7 +2311,7 @@ app.get('/api/users/search', requireAuth, async (req, res) => {
     if (!q) return res.status(200).json({ success: true, data: [] });
 
     const myId = req.user.id;
-    const me = await User.findById(myId).select('blockedUsers friendRequests');
+    const me = await User.findById(myId).select('blockedUsers friendRequests following').lean();
     if (!me) return res.status(404).json({ success: false, message: 'User not found.' });
 
     // Escape regex special characters so user input can't break the query.
@@ -2109,13 +2319,16 @@ app.get('/api/users/search', requireAuth, async (req, res) => {
     const regex = new RegExp(safeQ, 'i');
 
     const blocked = (me.blockedUsers || []).map(id => id.toString());
+    const myFollowing = new Set((me.following || []).map(id => id.toString()));
 
+    // Point 5 (Performance): `.lean()` for a read-only, projected search result.
     const results = await User.find({
       _id: { $ne: myId, $nin: blocked },
       $or: [{ username: regex }, { name: regex }]
     })
       .select('name username avatarColor profilePicture friendRequests')
-      .limit(15);
+      .limit(15)
+      .lean();
 
     const data = results.map(u => {
       const iSentThem = (me.friendRequests || []).some(r => r.from.toString() === u._id.toString() && r.status === 'accepted');
@@ -2135,7 +2348,8 @@ app.get('/api/users/search', requireAuth, async (req, res) => {
         username: u.username,
         avatarColor: u.avatarColor,
         profilePicture: u.profilePicture?.url || null,
-        friendStatus
+        friendStatus,
+        isFollowing: myFollowing.has(u._id.toString())
       };
     });
 
@@ -2209,6 +2423,125 @@ app.patch('/api/notifications/mute-toggle', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Notification mute-toggle error:', err.message);
     return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// ------------------- Saarthi AI Chatbot (Point 6) -------------------
+
+// Basic per-IP rate limit for the chatbot — protects against runaway LLM
+// spend/abuse without needing a login.
+const chatbotLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: { success: false, message: 'Saarthi is receiving a lot of questions right now. Please wait a moment.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/chatbot', chatbotLimiter);
+
+// GET /api/chatbot/history?sessionId=... — returns prior conversation so the
+// widget can restore context after a page reload. Logged-in users are keyed
+// by their account; guests are keyed by a client-generated sessionId.
+app.get('/api/chatbot/history', optionalAuth, async (req, res) => {
+  try {
+    const userId = req.user ? req.user.id : null;
+    const sessionId = (req.query.sessionId || '').toString().trim() || null;
+
+    if (!userId && !sessionId) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    const filter = userId ? { user: userId } : { sessionId };
+    // Point 5 (Performance): lean + indexed (user/sessionId + createdAt) + capped.
+    const messages = await ChatMessage.find(filter)
+      .sort({ createdAt: 1 })
+      .limit(100)
+      .select('role text createdAt')
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      data: messages.map(m => ({ role: m.role, text: m.text, createdAt: m.createdAt }))
+    });
+  } catch (err) {
+    console.error('Chatbot history error:', err);
+    return res.status(500).json({ success: false, message: 'Could not load conversation history.' });
+  }
+});
+
+// POST /api/chatbot/message — the main Saarthi endpoint. Accepts
+// { message: string, sessionId?: string } and returns a structured JSON
+// reply. Also persists both sides of the exchange for history continuity.
+// Shared handler for the Saarthi "send a message" endpoint — mounted on both
+// POST /api/chatbot/message (original path, unchanged for backward
+// compatibility with the existing widget) and POST /api/saarthi/chat (the
+// requested route name), so neither call site breaks.
+async function handleSaarthiChatMessage(req, res) {
+  try {
+    const message = (req.body?.message || '').toString().trim();
+    const sessionId = (req.body?.sessionId || '').toString().trim() || null;
+
+    if (!message) {
+      return res.status(400).json({ success: false, message: 'Please share what\'s on your mind.' });
+    }
+    if (message.length > 2000) {
+      return res.status(400).json({ success: false, message: 'Message is too long (max 2000 characters).' });
+    }
+
+    const userId = req.user ? req.user.id : null;
+    if (!userId && !sessionId) {
+      return res.status(400).json({ success: false, message: 'Missing session identifier.' });
+    }
+
+    const historyFilter = userId ? { user: userId } : { sessionId };
+    const recentHistory = await ChatMessage.find(historyFilter)
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('role text')
+      .lean();
+    recentHistory.reverse(); // chronological order for the LLM
+
+    const { text: replyText, source } = await getSaarthiReply(recentHistory, message);
+
+    // Persist both turns (fire-and-forget-safe — awaited so history is
+    // consistent on the very next request, but never blocks the reply above).
+    await ChatMessage.insertMany([
+      { user: userId, sessionId: userId ? null : sessionId, role: 'user', text: message },
+      { user: userId, sessionId: userId ? null : sessionId, role: 'assistant', text: replyText }
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        reply: replyText,
+        source, // 'gemini' | 'llm' | 'fallback' — purely informational, not shown to end users
+        createdAt: new Date()
+      }
+    });
+  } catch (err) {
+    console.error('Saarthi chatbot error:', err);
+    return res.status(500).json({ success: false, message: 'Saarthi could not respond right now. Please try again.' });
+  }
+}
+
+app.post('/api/chatbot/message', optionalAuth, handleSaarthiChatMessage);
+// Requested route name (Point 4) — same behaviour, same rate limiter
+// (mounted above on '/api/chatbot', which does not cover this path, so it
+// is repeated here to keep both endpoints equally protected).
+app.post('/api/saarthi/chat', chatbotLimiter, optionalAuth, handleSaarthiChatMessage);
+
+// DELETE /api/chatbot/history — lets a user clear their own conversation.
+app.delete('/api/chatbot/history', optionalAuth, async (req, res) => {
+  try {
+    const userId = req.user ? req.user.id : null;
+    const sessionId = (req.query.sessionId || '').toString().trim() || null;
+    if (!userId && !sessionId) return res.status(200).json({ success: true });
+
+    const filter = userId ? { user: userId } : { sessionId };
+    await ChatMessage.deleteMany(filter);
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Could not clear conversation.' });
   }
 });
 

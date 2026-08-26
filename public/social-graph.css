@@ -1,0 +1,279 @@
+/* ================================================================
+   social-graph.css — Follow button + Followers/Following drawer
+   (Point 4). Additive stylesheet: scoped entirely to `.sg-*` classes
+   so it cannot collide with existing styles in style.css / mobile.css.
+   ================================================================ */
+
+/* ---------- Follow Button ---------- */
+.sg-follow-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
+  background: linear-gradient(135deg, #ff9d31 0%, #d4a437 100%);
+  color: #120d08;
+}
+
+.sg-follow-btn:active {
+  transform: scale(0.96);
+}
+
+.sg-follow-btn.is-following {
+  background: transparent;
+  color: #e8bd5e;
+  border-color: rgba(212, 164, 55, 0.45);
+}
+
+.sg-follow-btn.is-following:hover {
+  background: rgba(212, 164, 55, 0.1);
+  border-color: rgba(212, 164, 55, 0.7);
+}
+
+/* Small variant — used inline next to usernames/comments/search rows */
+.sg-follow-btn--sm {
+  font-size: 0.72rem;
+  padding: 6px 14px;
+  min-height: 30px;
+}
+
+/* Medium variant — used on profile headers / featured cards */
+.sg-follow-btn--md {
+  font-size: 0.85rem;
+  padding: 9px 20px;
+  min-height: 40px;
+}
+
+/* Mobile: every follow button becomes a full 44px touch target,
+   per the "44px minimum touch target" requirement. */
+@media (max-width: 640px) {
+  .sg-follow-btn--sm,
+  .sg-follow-btn--md {
+    min-height: 44px;
+    padding-left: 16px;
+    padding-right: 16px;
+    font-size: 0.8rem;
+  }
+}
+
+/* ---------- Followers / Following Drawer ---------- */
+.sg-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  background: rgba(10, 7, 4, 0.72);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.sg-drawer-backdrop.hidden {
+  display: none;
+}
+
+.sg-drawer-panel {
+  width: 100%;
+  max-width: 420px;
+  max-height: 72vh;
+  background: linear-gradient(180deg, #1c140c 0%, #120d08 100%);
+  border: 1px solid rgba(212, 164, 55, 0.18);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+.sg-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(212, 164, 55, 0.12);
+  flex-shrink: 0;
+}
+
+.sg-drawer-title {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #f5f1ea;
+  margin: 0;
+}
+
+.sg-drawer-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: #9a8f80;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.sg-drawer-close:hover {
+  color: #e8bd5e;
+  background: rgba(212, 164, 55, 0.1);
+}
+
+.sg-drawer-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 6px 4px;
+}
+
+.sg-drawer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  transition: background-color 0.15s ease;
+}
+
+.sg-drawer-row:hover {
+  background: rgba(212, 164, 55, 0.06);
+}
+
+.sg-drawer-avatar {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(212, 164, 55, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #120d08;
+  cursor: pointer;
+  padding: 0;
+}
+
+.sg-drawer-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.sg-drawer-name {
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: #f0e9dd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.sg-drawer-username {
+  font-size: 0.74rem;
+  color: #8a7d6b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.sg-drawer-action-btn {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  min-height: 30px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d9cfc0;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.sg-drawer-action-btn:hover {
+  background: rgba(220, 80, 60, 0.12);
+  border-color: rgba(220, 80, 60, 0.4);
+  color: #ff9d8a;
+}
+
+.sg-drawer-loading,
+.sg-drawer-empty,
+.sg-drawer-error {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #8a7d6b;
+  padding: 28px 16px;
+}
+
+.sg-drawer-loadmore {
+  flex-shrink: 0;
+  margin: 8px 14px 14px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(212, 164, 55, 0.08);
+  border: 1px solid rgba(212, 164, 55, 0.2);
+  color: #e8bd5e;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sg-drawer-loadmore:hover {
+  background: rgba(212, 164, 55, 0.14);
+}
+
+/* Mobile: drawer becomes a full-width bottom sheet, all touch targets 44px+ */
+@media (max-width: 640px) {
+  .sg-drawer-backdrop {
+    align-items: flex-end;
+  }
+
+  .sg-drawer-panel {
+    max-width: 100%;
+    max-height: 80vh;
+    border-radius: 20px 20px 0 0;
+    border-bottom: none;
+  }
+
+  .sg-drawer-avatar {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .sg-drawer-close {
+    width: 44px;
+    height: 44px;
+  }
+
+  .sg-drawer-action-btn {
+    min-height: 40px;
+    padding: 8px 14px;
+  }
+
+  .sg-drawer-row {
+    padding: 12px 16px;
+  }
+}

@@ -1,0 +1,436 @@
+/* ================================================================
+   saarthi.css — Saarthi AI Spiritual Chatbot widget (Point 6)
+   + shared performance/skeleton-loader helper classes (Point 5).
+   Additive stylesheet, scoped to `.saarthi-*` / `.sg-skel-*` classes.
+   ================================================================ */
+
+#saarthiWidgetRoot {
+  position: fixed;
+  z-index: 9600;
+  left: max(20px, env(safe-area-inset-left));
+  bottom: calc(20px + env(safe-area-inset-bottom));
+}
+
+/* ---------- Floating Toggle ---------- */
+.saarthi-toggle-btn {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 30% 30%, #ffdb9e 0%, #d4a437 45%, #b3862a 100%);
+  box-shadow: 0 8px 28px rgba(212, 164, 55, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: saarthi-pulse 3.2s ease-in-out infinite;
+}
+
+.saarthi-toggle-btn:hover {
+  transform: scale(1.06);
+}
+
+.saarthi-toggle-btn.is-open {
+  animation: none;
+  transform: scale(0.94);
+}
+
+.saarthi-toggle-icon {
+  font-size: 1.7rem;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+
+@keyframes saarthi-pulse {
+  0%, 100% { box-shadow: 0 8px 28px rgba(212, 164, 55, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08) inset; }
+  50% { box-shadow: 0 8px 34px rgba(212, 164, 55, 0.7), 0 0 0 6px rgba(212, 164, 55, 0.12); }
+}
+
+/* ---------- Desktop Popup Card ---------- */
+.saarthi-panel {
+  position: fixed;
+  left: max(20px, env(safe-area-inset-left));
+  bottom: calc(90px + env(safe-area-inset-bottom));
+  width: clamp(320px, 30vw, 400px);
+  max-width: calc(100vw - 40px);
+  height: min(600px, 72vh);
+  max-height: calc(100vh - 130px);
+  background: linear-gradient(180deg, #1c140c 0%, #120d08 100%);
+  border: 1px solid rgba(212, 164, 55, 0.2);
+  border-radius: 22px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: saarthi-panel-in 0.22s ease;
+}
+
+/* Tablet / narrower desktop windows: keep the card comfortably proportioned
+   instead of stretching too wide or feeling cramped in between breakpoints. */
+@media (max-width: 900px) and (min-width: 641px) {
+  .saarthi-panel {
+    width: clamp(300px, 42vw, 360px);
+    height: min(520px, 68vh);
+  }
+}
+
+.saarthi-panel.hidden {
+  display: none;
+}
+
+@keyframes saarthi-panel-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.saarthi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(212, 164, 55, 0.14);
+  background: linear-gradient(135deg, rgba(212, 164, 55, 0.12), transparent);
+  flex-shrink: 0;
+}
+
+.saarthi-header-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.saarthi-header-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.saarthi-header-text {
+  min-width: 0;
+}
+
+.saarthi-header-title {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #f2d492;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.saarthi-header-subtitle {
+  font-size: 0.72rem;
+  color: #9a8f80;
+  margin: 2px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saarthi-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.saarthi-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #9a8f80;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.saarthi-icon-btn:hover {
+  background: rgba(212, 164, 55, 0.12);
+  color: #e8bd5e;
+}
+
+/* ---------- Messages ---------- */
+.saarthi-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scroll-behavior: smooth;
+}
+
+.saarthi-welcome-text {
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: #d9cfc0;
+  background: rgba(212, 164, 55, 0.08);
+  border: 1px solid rgba(212, 164, 55, 0.16);
+  border-radius: 14px 14px 14px 4px;
+  padding: 12px 14px;
+  margin: 0 0 4px;
+}
+
+.saarthi-quick-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.saarthi-quick-prompts.hidden {
+  display: none;
+}
+
+.saarthi-chip {
+  font-size: 0.72rem;
+  padding: 7px 12px;
+  min-height: 32px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(212, 164, 55, 0.25);
+  color: #e8bd5e;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  text-align: left;
+}
+
+.saarthi-chip:hover {
+  background: rgba(212, 164, 55, 0.14);
+  border-color: rgba(212, 164, 55, 0.5);
+}
+
+.saarthi-bubble {
+  max-width: 82%;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  padding: 11px 14px;
+  border-radius: 14px;
+  word-break: break-word;
+}
+
+.saarthi-bubble p {
+  margin: 0;
+}
+
+.saarthi-bubble--user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #ff9d31, #d4a437);
+  color: #14100a;
+  border-radius: 14px 14px 4px 14px;
+  font-weight: 500;
+}
+
+.saarthi-bubble--assistant {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(212, 164, 55, 0.14);
+  color: #e8e0d4;
+  border-radius: 14px 14px 14px 4px;
+}
+
+/* ---------- Typing indicator ---------- */
+.saarthi-typing {
+  display: flex;
+  gap: 4px;
+  padding: 0 16px 8px;
+  flex-shrink: 0;
+}
+
+.saarthi-typing.hidden {
+  display: none;
+}
+
+.saarthi-typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d4a437;
+  opacity: 0.5;
+  animation: saarthi-typing-bounce 1.1s infinite ease-in-out;
+}
+
+.saarthi-typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.saarthi-typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes saarthi-typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* ---------- Input row ---------- */
+.saarthi-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid rgba(212, 164, 55, 0.14);
+  flex-shrink: 0;
+}
+
+.saarthi-input {
+  flex: 1;
+  resize: none;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(212, 164, 55, 0.22);
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 0.84rem;
+  color: #f0e9dd;
+  font-family: 'Poppins', sans-serif;
+  max-height: 96px;
+  line-height: 1.4;
+}
+
+.saarthi-input:focus {
+  outline: none;
+  border-color: rgba(212, 164, 55, 0.55);
+}
+
+.saarthi-send-btn {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #ff9d31, #d4a437);
+  color: #14100a;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease, opacity 0.15s ease;
+}
+
+.saarthi-send-btn:active {
+  transform: scale(0.92);
+}
+
+.saarthi-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- Mobile: full-screen drawer ---------- */
+@media (max-width: 640px) {
+  #saarthiWidgetRoot {
+    left: 16px;
+    /* Clears the mobile bottom navigation bar (#mobileBottomNav), matching
+       the same safe-area convention already used elsewhere in mobile.css. */
+    bottom: calc(var(--nav-h-bottom, 62px) + var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 16px);
+  }
+
+  .saarthi-toggle-btn {
+    width: 54px;
+    height: 54px;
+  }
+
+  .saarthi-panel {
+    position: fixed;
+    inset: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    border: none;
+    z-index: 9700;
+  }
+
+  .saarthi-header {
+    padding-top: max(14px, env(safe-area-inset-top));
+  }
+
+  .saarthi-input-row {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .saarthi-icon-btn,
+  .saarthi-send-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .saarthi-chip {
+    min-height: 36px;
+  }
+
+  body.saarthi-open {
+    overflow: hidden;
+  }
+}
+
+/* ================================================================
+   Point 5 (Performance) — shared skeleton/shimmer loader classes.
+   Used by app.js while a feed/community page is fetching, replacing
+   blank "Loading…" text with an instant, perceived-fast placeholder.
+   ================================================================ */
+.sg-skeleton-card {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(212, 164, 55, 0.08);
+  overflow: hidden;
+  position: relative;
+}
+
+.sg-skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sg-skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(212, 164, 55, 0.14), transparent);
+  animation: sg-shimmer 1.4s infinite;
+}
+
+@keyframes sg-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+.sg-skeleton-thought {
+  height: 190px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sg-skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+}
+
+.sg-skeleton-line--title { width: 60%; height: 16px; }
+.sg-skeleton-line--full { width: 100%; }
+.sg-skeleton-line--short { width: 40%; }
+
+.sg-skeleton-post {
+  aspect-ratio: 4 / 5;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.sg-skeleton-post-footer {
+  height: 46px;
+  background: rgba(18, 13, 8, 0.6);
+}
+
+.sg-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}

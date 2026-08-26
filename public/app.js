@@ -27,6 +27,38 @@ function timeAgo(dateStr) {
 const timeAgoFeed = timeAgo;
 
 // ================================================================
+// Point 5 (Performance): Skeleton loader helper — shows shimmer
+// placeholder cards instantly instead of a blank/"Loading…" screen,
+// so navigation *feels* instant even while data is still in flight.
+// ================================================================
+function renderSkeletonCards(container, count, variant) {
+  if (!container) return;
+  container.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const card = document.createElement('div');
+    card.className = `sg-skeleton-card sg-skeleton-${variant}`;
+    if (variant === 'thought') {
+      card.innerHTML = `
+        <div class="sg-skeleton-shimmer sg-skeleton-line sg-skeleton-line--title"></div>
+        <div class="sg-skeleton-shimmer sg-skeleton-line sg-skeleton-line--full"></div>
+        <div class="sg-skeleton-shimmer sg-skeleton-line sg-skeleton-line--full"></div>
+        <div class="sg-skeleton-shimmer sg-skeleton-line sg-skeleton-line--short"></div>
+      `;
+    } else {
+      card.innerHTML = `
+        <div class="sg-skeleton-shimmer" style="flex:1;"></div>
+        <div class="sg-skeleton-shimmer sg-skeleton-post-footer"></div>
+      `;
+    }
+    container.appendChild(card);
+  }
+}
+function clearSkeletonCards(container) {
+  if (!container) return;
+  container.querySelectorAll('.sg-skeleton-card').forEach((el) => el.remove());
+}
+
+// ================================================================
 // UTILITY: Get name initials
 // ================================================================
 function getInitials(name) {
@@ -846,7 +878,7 @@ function closeEditProfileModal() { /* no-op */ }
       const isMedia = item.mediaType === 'photo' || item.mediaType === 'reel';
       if (isMedia) {
         return `<div class="aspect-square rounded-lg overflow-hidden bg-dark-700/60">
-          <img src="${escapeHtml(item.mediaUrl)}" alt="" class="w-full h-full object-cover"
+          <img src="${escapeHtml(item.mediaUrl)}" alt="" class="w-full h-full object-cover" loading="lazy"
             onerror="mediaFallback(this)" />
         </div>`;
       }
@@ -1278,7 +1310,7 @@ function renderWisdomTab(tab, containerEl) {
 
   container.innerHTML = `
         <div class="wisdom-cover-frame rounded-3xl overflow-hidden shadow-2xl border border-gold-500/20 bg-dark-700/60 relative group w-full aspect-[3/4] sm:aspect-[4/3] md:aspect-auto md:h-full md:min-h-[340px] flex items-center justify-center p-4 sm:p-6">
-          <img src="${data.image}" alt="${data.title}" class="wisdom-cover-img max-w-full max-h-full w-auto h-auto group-hover:scale-105 transition-transform duration-500" onerror="mediaFallback(this)" />
+          <img src="${data.image}" alt="${data.title}" class="wisdom-cover-img max-w-full max-h-full w-auto h-auto group-hover:scale-105 transition-transform duration-500" loading="lazy" onerror="mediaFallback(this)" />
           <span class="absolute top-4 left-4 px-3.5 py-1 rounded-full text-xs font-semibold bg-dark-900/85 backdrop-blur-md border border-gold-500/40 text-gold-400">
             ${data.category}
           </span>
@@ -1641,9 +1673,12 @@ async function loadCommunityThoughts(reset = true) {
     grid.innerHTML = '';
     emptyMsg.classList.add('hidden');
     loadMoreBtn.classList.add('hidden');
+    // Point 5: instant shimmer placeholders instead of a blank grid while the
+    // first page of thoughts is in flight — replaces the old blank-screen wait.
+    renderSkeletonCards(grid, 6, 'thought');
   }
 
-  loadingMsg.classList.remove('hidden');
+  loadingMsg.classList.add('hidden');
 
   try {
     const token = getToken();
@@ -1652,6 +1687,7 @@ async function loadCommunityThoughts(reset = true) {
     });
     const data = await res.json();
     loadingMsg.classList.add('hidden');
+    if (reset) clearSkeletonCards(grid);
 
     if (!data.success) {
       if (reset) {
@@ -1679,6 +1715,7 @@ async function loadCommunityThoughts(reset = true) {
     // Don't leave "Loading…" stuck — show error state cleanly
     loadingMsg.classList.add('hidden');
     if (reset) {
+      clearSkeletonCards(grid);
       emptyMsg.textContent = 'Could not load thoughts. Please refresh the page.';
       emptyMsg.classList.remove('hidden');
     }
@@ -1922,6 +1959,7 @@ async function loadComments(thoughtId) {
           <div class="flex items-center gap-2 mb-0.5">
             <button type="button" class="text-sm font-medium text-gold-400 hover:underline cursor-pointer text-left">${displayName}</button>
             <p class="text-xs text-gray-500">${timeAgo(c.createdAt)}</p>
+            <span class="comment-sg-follow-slot"></span>
           </div>
           <p class="text-sm text-gray-300 leading-relaxed">${escapeHtml(c.text)}</p>
         </div>
@@ -1934,8 +1972,15 @@ async function loadComments(thoughtId) {
         profilePicture: c.profilePicture
       });
 
+      // Point 4: one-tap Follow button on community comments.
+      const myUser = getStoredUser();
+      const slot = item.querySelector('.comment-sg-follow-slot');
+      if (authorId && myUser && myUser.id !== authorId && window.SocialGraph) {
+        slot.appendChild(window.SocialGraph.createFollowButton(authorId, !!c.followedByMe, { size: 'sm' }));
+      }
+
       if (authorId) {
-        item.querySelectorAll('button').forEach(b => {
+        item.querySelectorAll('button:not(.sg-follow-btn)').forEach(b => {
           b.addEventListener('click', () => {
             closeCommentsModal();
             openPublicProfile(authorId);
@@ -2013,14 +2058,17 @@ async function loadFeed(reset = false) {
   if (reset) {
     feedPage = 1;
     feedHasMore = true;
-    document.getElementById('feedList').innerHTML = '';
+    const feedListEl = document.getElementById('feedList');
+    feedListEl.innerHTML = '';
+    // Point 5: shimmer placeholders instantly instead of a blank feed.
+    renderSkeletonCards(feedListEl, 4, 'post');
   }
 
   const loadingMsg = document.getElementById('feedLoadingMsg');
   const emptyMsg = document.getElementById('feedEmptyMsg');
   const loadMoreBtn = document.getElementById('loadMorePostsBtn');
 
-  loadingMsg.classList.remove('hidden');
+  loadingMsg.classList.add('hidden');
   emptyMsg.classList.add('hidden');
 
   try {
@@ -2034,6 +2082,7 @@ async function loadFeed(reset = false) {
     });
     const data = await res.json();
     loadingMsg.classList.add('hidden');
+    if (reset) clearSkeletonCards(document.getElementById('feedList'));
 
     if (!data.success) {
       emptyMsg.textContent = 'Could not load feed. Please refresh.';
@@ -2057,6 +2106,7 @@ async function loadFeed(reset = false) {
     feedPage += 1;
   } catch {
     // BUG FIX: clear spinner, show error text
+    if (reset) clearSkeletonCards(document.getElementById('feedList'));
     document.getElementById('feedLoadingMsg').classList.add('hidden');
     document.getElementById('feedEmptyMsg').textContent = 'Could not load feed. Please refresh.';
     document.getElementById('feedEmptyMsg').classList.remove('hidden');
@@ -2838,6 +2888,7 @@ function buildPostCommentEl(c) {
           ${displayName}
         </button>
         <span class="text-[10px] text-gray-500">${timeAgo(c.createdAt)}</span>
+        <span class="comment-sg-follow-slot"></span>
       </div>
       <p class="text-xs sm:text-sm text-gray-200 leading-relaxed break-words">${escapeHtml(c.text)}</p>
     </div>
@@ -2850,8 +2901,16 @@ function buildPostCommentEl(c) {
         profilePicture: c.profilePicture
       });
 
+      // Point 4: one-tap Follow button on community comments — hidden on the
+      // viewer's own comments, and only shown once we know their follow state.
+      const myUser = getStoredUser();
+      const slot = el.querySelector('.comment-sg-follow-slot');
+      if (authorId && myUser && myUser.id !== authorId && window.SocialGraph) {
+        slot.appendChild(window.SocialGraph.createFollowButton(authorId, !!c.followedByMe, { size: 'sm' }));
+      }
+
       if (authorId) {
-        el.querySelectorAll('button').forEach(b => {
+        el.querySelectorAll('button:not(.sg-follow-btn)').forEach(b => {
           b.addEventListener('click', () => {
             closePostDetail();
             openPublicProfile(authorId);
@@ -3143,36 +3202,10 @@ async function openPublicProfile(userId) {
     };
 
     // ── Friend / Message button ──
-    const friendBtn = document.getElementById('ppFriendBtn');
-    const messageBtn = document.getElementById('ppMessageBtn');
-
-    if (u.friendStatus === 'friends') {
-      friendBtn.classList.add('hidden');
-      messageBtn.classList.remove('hidden');
-      messageBtn.onclick = () => {
-        closePublicProfile();
-        openChatDrawer();
-        openChatThread(userId, u.name, u.avatarColor, u.profilePicture);
-      };
-    } else if (u.friendStatus === 'pending_sent') {
-      friendBtn.textContent = 'Request Sent';
-      friendBtn.disabled = true;
-    } else if (u.friendStatus === 'pending_received') {
-      friendBtn.textContent = 'Respond to Request';
-      friendBtn.onclick = () => showFriendRequestToast(userId, u.name);
-    } else {
-      friendBtn.textContent = 'Add Friend';
-      friendBtn.onclick = async () => {
-        const t = getToken();
-        if (!t) { openAuthModal('login'); return; }
-        const r = await fetch(`/api/users/${userId}/friend-request`, {
-          method: 'POST', headers: { Authorization: `Bearer ${t}` }
-        });
-        const d = await r.json();
-        showToast(d.message, d.success ? 'success' : 'error');
-        if (d.success) { friendBtn.textContent = 'Request Sent'; friendBtn.disabled = true; }
-      };
-    }
+    // (state rendering is delegated to renderProfileFriendButton() so the same
+    // logic can be reused by the real-time 'friend_status_update' socket
+    // handler and the inline Accept/Reject actions below — no page reload needed.)
+    renderProfileFriendButton(userId, u.friendStatus);
 
     // ── Posts grid ──
     allProfilePosts = u.posts;
@@ -3594,6 +3627,100 @@ function checkSavedEmptyState() {
 }
 
 // ================================================================
+// PROFILE PAGE: Friend/Message button state
+// ================================================================
+// Renders the ppFriendBtn/ppMessageBtn pair for a given friendStatus. Used
+// both on initial profile load and by the real-time 'friend_status_update'
+// socket handler below, so Accept/Reject on the profile page updates the UI
+// instantly without any page reload or navigating back to the notification feed.
+function renderProfileFriendButton(userId, status) {
+  const friendBtn = document.getElementById('ppFriendBtn');
+  const messageBtn = document.getElementById('ppMessageBtn');
+  if (!friendBtn || !messageBtn) return;
+
+  // Clear any inline Accept/Reject actions left over from a previous state.
+  document.getElementById('ppInlineFriendActions')?.remove();
+  friendBtn.disabled = false;
+  friendBtn.classList.remove('hidden');
+  messageBtn.classList.add('hidden');
+
+  if (status === 'friends') {
+    friendBtn.classList.add('hidden');
+    messageBtn.classList.remove('hidden');
+    messageBtn.onclick = () => {
+      const info = currentProfileAuthorInfo || {};
+      closePublicProfile();
+      openChatDrawer();
+      openChatThread(userId, info.name, info.avatarColor, info.profilePicture);
+    };
+  } else if (status === 'pending_sent') {
+    friendBtn.textContent = 'Request Sent';
+    friendBtn.disabled = true;
+  } else if (status === 'pending_received') {
+    friendBtn.textContent = 'Respond to Request';
+    friendBtn.onclick = () => showInlineFriendRequestActions(userId);
+  } else {
+    friendBtn.textContent = 'Add Friend';
+    friendBtn.onclick = async () => {
+      const t = getToken();
+      if (!t) { openAuthModal('login'); return; }
+      const r = await fetch(`/api/users/${userId}/friend-request`, {
+        method: 'POST', headers: { Authorization: `Bearer ${t}` }
+      });
+      const d = await r.json();
+      showToast(d.message, d.success ? 'success' : 'error');
+      if (d.success) { friendBtn.textContent = 'Request Sent'; friendBtn.disabled = true; }
+    };
+  }
+}
+
+// Inline Accept/Reject — shown directly on the profile page in place of the
+// "Respond to Request" button, so the user never has to leave the profile to
+// act on a friend request.
+function showInlineFriendRequestActions(fromId) {
+  const friendBtn = document.getElementById('ppFriendBtn');
+  if (!friendBtn || document.getElementById('ppInlineFriendActions')) return;
+
+  friendBtn.classList.add('hidden');
+
+  const group = document.createElement('div');
+  group.id = 'ppInlineFriendActions';
+  group.className = 'flex gap-2';
+  group.innerHTML = `
+    <button type="button" id="ppInlineAcceptBtn" class="btn-primary px-4 py-1.5 rounded-lg text-sm font-semibold">Accept</button>
+    <button type="button" id="ppInlineRejectBtn" class="px-4 py-1.5 rounded-lg text-sm font-semibold border border-gray-500/40 text-gray-400 hover:bg-gray-500/10 transition-colors">Reject</button>
+  `;
+  friendBtn.insertAdjacentElement('afterend', group);
+
+  const respond = async (action, nextStatus) => {
+    group.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+    const token = getToken();
+    try {
+      const res = await fetch(`/api/users/friend-request/${fromId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action })
+      });
+      const data = await res.json();
+      showToast(data.message, data.success ? 'success' : 'error');
+      // Only re-render if the same profile is still open (guards against the
+      // user navigating away mid-request).
+      if (data.success && String(currentProfileUserId) === String(fromId)) {
+        renderProfileFriendButton(fromId, nextStatus);
+      } else if (!data.success) {
+        group.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+      }
+    } catch {
+      showToast('Network error.', 'error');
+      group.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+    }
+  };
+
+  document.getElementById('ppInlineAcceptBtn').addEventListener('click', () => respond('accept', 'friends'));
+  document.getElementById('ppInlineRejectBtn').addEventListener('click', () => respond('reject', 'none'));
+}
+
+// ================================================================
 // FRIEND REQUEST TOAST (real-time notification)
 // ================================================================
 let pendingFriendRequestFromId = null;
@@ -3729,6 +3856,10 @@ function connectSocket() {
   // Fire-and-forget "mark as read" call — used right after a live message
   // renders into an already-open thread (see receive_message above).
   function markMessagesReadWith(otherUserId) {
+    // Clear the badge immediately (the thread is on screen right now, so the
+    // message is, for all practical purposes, already read) rather than
+    // waiting on the network round-trip below.
+    clearUnreadBadgeFor(otherUserId);
     const token = getToken();
     if (!token) return;
     fetch(`/api/messages/${otherUserId}/read`, {
@@ -3768,6 +3899,15 @@ function connectSocket() {
   // Friend request real-time notification
   socket.on('friend_request', ({ from }) => {
     showFriendRequestToast(from.id, from.name);
+  });
+
+  // Real-time friend-status sync (request sent/accepted/rejected). If the
+  // profile of the other party is currently open, update its Friend/Message
+  // button immediately — no reload, no navigating back to the feed.
+  socket.on('friend_status_update', ({ withUserId, status }) => {
+    if (currentProfileUserId && String(currentProfileUserId) === String(withUserId)) {
+      renderProfileFriendButton(withUserId, status);
+    }
   });
 
   // Real-time feed: someone else just posted. Don't inject it straight into
@@ -4565,13 +4705,14 @@ async function loadIgConversations() {
     data.data.forEach(c => {
       const item = document.createElement('div');
       item.className = 'ig-dm-convo-item';
+      item.dataset.userid = c.userId;
       item.innerHTML = `
         <span class="ig-dm-avatar w-12 h-12 rounded-full flex items-center justify-center font-serif font-bold text-dark-900 text-sm bg-cover bg-center shrink-0"></span>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-semibold text-gray-100 truncate">${escapeHtml(c.name)}</p>
           <p class="text-xs text-gray-500 truncate mt-0.5">${escapeHtml(c.lastMessage || '')}</p>
         </div>
-        ${c.unreadCount > 0 ? `<span class="w-5 h-5 rounded-full bg-saffron-500 text-dark-900 text-[10px] font-bold flex items-center justify-center shrink-0">${c.unreadCount}</span>` : ''}
+        ${c.unreadCount > 0 ? `<span class="ig-dm-unread-badge w-5 h-5 rounded-full bg-saffron-500 text-dark-900 text-[10px] font-bold flex items-center justify-center shrink-0">${c.unreadCount}</span>` : ''}
       `;
       renderAvatarInto(item.querySelector('.ig-dm-avatar'), { name: c.name, avatarColor: c.avatarColor, profilePicture: c.profilePicture });
       item.addEventListener('click', () => openIgThread(c.userId, c.name, c.avatarColor, c.profilePicture));
@@ -4613,6 +4754,11 @@ async function openIgThread(userId, name, avatarColor, profilePicture) {
       const myId = getStoredUser()?.id;
       data.data.forEach(m => appendIgBubble(m, m.sender === myId, false));
       msgList.scrollTop = msgList.scrollHeight;
+      // The GET /api/messages/:userId call above already marks this
+      // conversation's incoming messages as read server-side — clear the
+      // unread badge in the UI immediately to match, instead of waiting
+      // for the next full conversation-list refetch.
+      clearUnreadBadgeFor(userId);
     }
   } catch {
     msgList.innerHTML = '<p class="text-center text-red-400 text-sm py-6">Failed to load messages.</p>';
@@ -4626,6 +4772,29 @@ async function openIgThread(userId, name, avatarColor, profilePicture) {
     document.getElementById('igChatBlockUserBtn').classList.toggle('hidden', d.isBlocked);
     document.getElementById('igChatUnblockUserBtn').classList.toggle('hidden', !d.isBlocked);
   } catch { /* silent */ }
+}
+
+// ================================================================
+// Clears the unread badge for one conversation immediately after its
+// messages are marked read (thread opened, or a live message arriving while
+// the thread is already open) — keeps the DM list row and the navbar/mobile
+// unread dots in sync without a page reload or waiting for the next
+// conversation-list refetch.
+// ================================================================
+function clearUnreadBadgeFor(otherUserId) {
+  const list = document.getElementById('igDmConvoList');
+  if (list) {
+    const row = list.querySelector(`.ig-dm-convo-item[data-userid="${CSS.escape(String(otherUserId))}"]`);
+    row?.querySelector('.ig-dm-unread-badge')?.remove();
+    const anyUnread = !!list.querySelector('.ig-dm-unread-badge');
+    document.getElementById('chatUnreadDot')?.classList.toggle('hidden', !anyUnread);
+    document.getElementById('mobChatUnreadDot')?.classList.toggle('hidden', !anyUnread);
+  } else {
+    // Conversation list isn't in the DOM right now — nothing visible to
+    // clear, but there's also no evidence anything else is still unread.
+    document.getElementById('chatUnreadDot')?.classList.add('hidden');
+    document.getElementById('mobChatUnreadDot')?.classList.add('hidden');
+  }
 }
 
 function appendIgBubble(msg, isMine, animate = true) {
@@ -4838,6 +5007,16 @@ function renderUserSearchResults(users) {
       </div>
     `;
     renderAvatarInto(row.querySelector('.usr-avatar'), { name: u.name, avatarColor: u.avatarColor, profilePicture: u.profilePicture });
+
+    // Point 4: one-tap Follow button on member/search cards, shown alongside
+    // the existing friend-request based action (Follow and Friend-request
+    // are independent relationships in this app, so both make sense together).
+    if (window.SocialGraph) {
+      const followSlot = document.createElement('span');
+      followSlot.className = 'user-search-follow-slot';
+      followSlot.appendChild(window.SocialGraph.createFollowButton(u.id, !!u.isFollowing, { size: 'sm' }));
+      row.appendChild(followSlot);
+    }
 
     const actionBtn = document.createElement('button');
     actionBtn.type = 'button';

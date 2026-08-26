@@ -96,6 +96,11 @@ const userSchema = new mongoose.Schema(
   { versionKey: false }
 );
 
+// Point 5 (Performance): the "Add Friend" search bar and member lists query
+// by name/username. A text index lets MongoDB use an index scan for those
+// lookups instead of scanning every user document.
+userSchema.index({ name: 'text', username: 'text' });
+
 // Hash password before saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();

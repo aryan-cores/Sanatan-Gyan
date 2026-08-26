@@ -84,4 +84,10 @@ const thoughtSchema = new mongoose.Schema(
   { versionKey: false }
 );
 
+// Point 5 (Performance): the community feed always queries
+// { status: 'Approved' } sorted by createdAt desc — this compound index lets
+// Mongo satisfy that query with an index scan instead of a collection scan.
+thoughtSchema.index({ status: 1, createdAt: -1 });
+thoughtSchema.index({ author: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Thought', thoughtSchema);
