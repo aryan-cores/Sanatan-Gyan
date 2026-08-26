@@ -178,7 +178,7 @@
   }
 
   function buildReelCard(post, index) {
-    const { _id, mediaUrl, mediaType, caption, author, likeCount = 0 } = post;
+    const { _id, mediaUrl, mediaType, caption, author, likeCount = 0, likedByMe = false, savedByMe = false } = post;
     const isVideo = mediaType === 'reel';
     const authorStyle = buildAvatarStyle(author);
     const authorName = (author && author.name) ? author.name : 'Spiritual Seeker';
@@ -221,13 +221,17 @@
 
       <!-- Right-side action buttons -->
       <div class="reel-actions">
-        <button class="reel-action-btn" data-action="like" data-post-id="${_id}" data-liked="false">
-          <div class="reel-action-icon">🤍</div>
+        <button class="reel-action-btn${likedByMe ? ' liked' : ''}" data-action="like" data-post-id="${_id}" data-liked="${likedByMe ? 'true' : 'false'}">
+          <div class="reel-action-icon">${likedByMe ? '❤️' : '🤍'}</div>
           <span class="reel-action-count">${likeCount}</span>
         </button>
         <button class="reel-action-btn" data-action="comment" data-post-id="${_id}">
           <div class="reel-action-icon">💬</div>
           <span class="reel-action-count">${post.commentCount || 0}</span>
+        </button>
+        <button class="reel-action-btn" data-action="save" data-post-id="${_id}" data-saved="${savedByMe ? 'true' : 'false'}" aria-label="Save">
+          <div class="reel-action-icon">${savedByMe ? '🔖' : '📑'}</div>
+          <span class="reel-action-count">${savedByMe ? 'Saved' : 'Save'}</span>
         </button>
         <button class="reel-action-btn" data-action="share" data-post-id="${_id}">
           <div class="reel-action-icon">
@@ -236,6 +240,10 @@
             </svg>
           </div>
           <span class="reel-action-count">Share</span>
+        </button>
+        <button class="reel-action-btn" data-action="report" data-post-id="${_id}" aria-label="Report">
+          <div class="reel-action-icon">🚩</div>
+          <span class="reel-action-count">Report</span>
         </button>
         ${isVideo ? `
         <button class="reel-action-btn" data-action="mute" data-post-id="${_id}" aria-label="Toggle sound">
@@ -305,6 +313,70 @@
         openCommentsModal(_id, caption || 'Reel');
       } else if (typeof openPostDetail === 'function') {
         openPostDetail(post, reelsData, index);
+      }
+    });
+
+    /* Save / Bookmark button — mirrors the post-item save behavior
+       (POST /api/posts/:id/save), so it persists and matches the
+       existing "Saved & Liked" section on the profile page. */
+    card.querySelector('[data-action="save"]').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const btn = e.currentTarget;
+      if (!token) {
+        if (typeof showToast === 'function') showToast('Please log in to save', 'info');
+        else if (typeof openAuthModal === 'function') openAuthModal();
+        return;
+      }
+      const wasSaved = btn.dataset.saved === 'true';
+      const iconEl = btn.querySelector('.reel-action-icon');
+      const labelEl = btn.querySelector('.reel-action-count');
+
+      // Optimistic UI update, rolled back below if the request fails
+      btn.dataset.saved = wasSaved ? 'false' : 'true';
+      iconEl.textContent = wasSaved ? '📑' : '🔖';
+      labelEl.textContent = wasSaved ? 'Save' : 'Saved';
+
+      try {
+        const res = await fetch(`/api/posts/${_id}/save`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Save failed');
+        if (typeof showToast === 'function') {
+          showToast(data.saved ? 'Saved to your profile.' : 'Removed from saved.', 'success');
+        }
+      } catch (_) {
+        // Roll back optimistic update on failure
+        btn.dataset.saved = wasSaved ? 'true' : 'false';
+        iconEl.textContent = wasSaved ? '🔖' : '📑';
+        labelEl.textContent = wasSaved ? 'Saved' : 'Save';
+        if (typeof showToast === 'function') showToast('Could not save. Try again.', 'error');
+      }
+    });
+
+    /* Report button — same endpoint/flow as the post detail modal's
+       3-dot "Report Post" action (POST /api/posts/:id/report). */
+    card.querySelector('[data-action="report"]').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!token) {
+        if (typeof showToast === 'function') showToast('Please log in to report', 'info');
+        else if (typeof openAuthModal === 'function') openAuthModal();
+        return;
+      }
+      const reason = prompt('Why are you reporting this video? (optional)') || '';
+      try {
+        const res = await fetch(`/api/posts/${_id}/report`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ reason })
+        });
+        const data = await res.json();
+        if (typeof showToast === 'function') {
+          showToast(data.message || (data.success ? 'Video reported.' : 'Could not report video.'), data.success ? 'success' : 'error');
+        }
+      } catch (_) {
+        if (typeof showToast === 'function') showToast('Network error while reporting video.', 'error');
       }
     });
 
@@ -417,7 +489,10 @@
         </div>`;
 
       try {
-        const res = await fetch('/api/posts?type=reel&limit=20');
+        const reelsToken = localStorage.getItem('sg_token');
+        const res = await fetch('/api/posts?type=reel&limit=20', {
+          headers: reelsToken ? { Authorization: `Bearer ${reelsToken}` } : {}
+        });
         const data = await res.json();
         reelsData = (data.success && (data.reels || data.data)) ?
           (data.reels || data.data).filter(p => p.mediaType === 'reel') : [];
@@ -551,12 +626,19 @@
           if (typeof openAuthModal === 'function') openAuthModal();
           else document.getElementById('authModal')?.classList.remove('hidden');
         } else {
-          if (typeof openProfileModal === 'function') openProfileModal();
-          else if (typeof openPublicProfileModal === 'function') {
+          /* Go to the actual Instagram-style profile page (with its
+             working ← back button), not the Settings hub modal.
+             (Previously this called openProfileModal() — the Settings
+             hub — because openPublicProfileModal() doesn't exist as a
+             function anywhere in the app, so that branch never ran and
+             silently fell through to the wrong modal every time.) */
+          if (typeof openPublicProfile === 'function') {
             const user = JSON.parse(localStorage.getItem('sg_user') || '{}');
-            openPublicProfileModal(user.id || user._id, true);
+            openPublicProfile(user.id || user._id);
+          } else if (typeof openProfileModal === 'function') {
+            openProfileModal();
           } else {
-            document.getElementById('profileModal')?.classList.remove('hidden');
+            document.getElementById('publicProfileModal')?.classList.remove('hidden');
           }
         }
       });

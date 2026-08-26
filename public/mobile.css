@@ -988,6 +988,19 @@ html, body {
     overflow: hidden;
   }
 
+  /* Close/back button — was hardcoded top-3 right-3, which sits under
+     the status bar / notch on full-bleed mobile view. Pin it to the
+     viewport instead of the (overflow-hidden) modal panel, and pad it
+     out past the safe area so it's always fully visible and tappable. */
+  #postDetailModal #closePostDetail {
+    position: fixed;
+    top: max(10px, env(safe-area-inset-top));
+    right: 10px;
+    z-index: 130;
+    width: 36px;
+    height: 36px;
+  }
+
   /* Media stays a fixed, sensible height at the top */
   #postDetailModal .modal-panel > div:first-child {
     max-height: 42vh !important;
