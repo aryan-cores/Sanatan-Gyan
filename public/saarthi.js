@@ -121,6 +121,10 @@
       input.style.height = 'auto';
       input.style.height = Math.min(input.scrollHeight, 96) + 'px';
     });
+    // Keyboard opening/closing changes the visual viewport with a slight
+    // delay on some browsers — re-run the sizing fix once focus settles.
+    input.addEventListener('focus', () => setTimeout(updateViewportSize, 250));
+    input.addEventListener('blur', () => setTimeout(updateViewportSize, 250));
 
     renderQuickPrompts();
   }
@@ -149,6 +153,7 @@
     document.body.classList.add('saarthi-open');
     loadHistory();
     setTimeout(() => document.getElementById('saarthiInput')?.focus(), 150);
+    updateViewportSize();
   }
 
   function closePanel() {
@@ -156,6 +161,40 @@
     document.getElementById('saarthiPanel').classList.add('hidden');
     document.getElementById('saarthiToggleBtn').classList.remove('is-open');
     document.body.classList.remove('saarthi-open');
+  }
+
+  // ── Mobile keyboard / viewport fix (Point 3) ──
+  // On mobile, 100vh/100dvh don't shrink when the on-screen keyboard opens
+  // (only window.visualViewport does), so the input bar can end up pushed
+  // below the visible screen or hidden behind the keyboard. We size the
+  // fullscreen panel to the *visual* viewport directly, whenever it changes.
+  function updateViewportSize() {
+    const panel = document.getElementById('saarthiPanel');
+    if (!panel || !isOpen) return;
+    if (window.innerWidth > 640) {
+      // Desktop/tablet popup card — not fullscreen, no fix needed
+      panel.style.height = '';
+      panel.style.top = '';
+      return;
+    }
+    if (window.visualViewport) {
+      const vv = window.visualViewport;
+      panel.style.height = `${vv.height}px`;
+      panel.style.top = `${vv.offsetTop}px`;
+    } else {
+      panel.style.height = '100dvh';
+      panel.style.top = '0px';
+    }
+    // Keep the newest message / input in view once the layout has settled
+    const messages = document.getElementById('saarthiMessages');
+    if (messages) messages.scrollTop = messages.scrollHeight;
+  }
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', updateViewportSize);
+    window.visualViewport.addEventListener('scroll', updateViewportSize);
+  } else {
+    window.addEventListener('resize', updateViewportSize);
   }
 
   let historyLoaded = false;

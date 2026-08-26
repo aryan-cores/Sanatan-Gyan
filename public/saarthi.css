@@ -337,11 +337,27 @@
     bottom: 0;
     width: 100vw;
     max-width: 100vw;
-    height: 100vh;
-    max-height: 100vh;
+    /* Fallback for browsers without visualViewport JS support — dvh tracks
+       the small/dynamic viewport better than vh. saarthi.js overrides this
+       with an exact window.visualViewport height whenever available, which
+       is what actually keeps the input bar above the on-screen keyboard. */
+    height: 100dvh;
+    max-height: 100dvh;
     border-radius: 0;
     border: none;
     z-index: 9700;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .saarthi-messages {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .saarthi-input-row {
+    flex-shrink: 0;
   }
 
   .saarthi-header {

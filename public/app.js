@@ -2461,6 +2461,9 @@ function openPostDetail(post, authorOverride, list) {
 
   document.body.style.overflow = 'hidden';
   postDetailModal.classList.remove('hidden');
+  // Fullscreen media view is open — hide the floating Saarthi widget so it
+  // can never sit on top of the Reels-style creator info / action rail.
+  document.body.classList.add('fullscreen-media-open');
   renderPostDetailAtIndex();
 }
 
@@ -2509,6 +2512,28 @@ function renderPostDetailAtIndex() {
   document.getElementById('pdNextBtn').classList.toggle('hidden', pdIndex >= pdList.length - 1);
 
   loadPostDetailComments(post._id);
+
+  // ── Instagram-Reels-style overlay (mobile only, gated by CSS) ──
+  const isReel = post.mediaType === 'reel';
+  postDetailModal.classList.toggle('pd-reel-mode', true); // layout applies to photo posts too on mobile; video gets the extra mute control
+  postDetailModal.classList.toggle('pd-comments-open', false); // always start with the comments sheet collapsed
+  document.getElementById('pdReelUsername').textContent = author.username ? `@${author.username}` : (author.name || 'Unknown User');
+  document.getElementById('pdReelUsername').onclick = goToAuthor;
+  document.getElementById('pdReelCaption').textContent = post.caption || '';
+  document.getElementById('pdReelCaption').classList.toggle('hidden', !post.caption);
+  renderAvatarInto(document.getElementById('pdReelAvatar'), {
+    name: author.name, avatarColor: author.avatarColor, profilePicture: author.profilePicture
+  });
+  document.getElementById('pdReelLikeIcon').textContent = post.likedByMe ? '❤️' : '🤍';
+  document.getElementById('pdReelLikeCount').textContent = post.likeCount || 0;
+  document.getElementById('pdReelLikeBtn').classList.toggle('liked', !!post.likedByMe);
+  document.getElementById('pdReelCommentCount').textContent = post.commentCount || 0;
+  const railSaved = !!post.savedByMe;
+  document.getElementById('pdReelSaveIcon').textContent = railSaved ? '🔖' : '📑';
+  document.getElementById('pdReelSaveLabel').textContent = railSaved ? 'Saved' : 'Save';
+  document.getElementById('pdReelMuteBtn').classList.toggle('pd-reel-force-hide', !isReel);
+  document.getElementById('pdReelSoundBadge').classList.toggle('pd-reel-force-hide', !isReel);
+
   // Modal khulne par video auto-play karein
   const pdVideo = document.querySelector('#pdMediaWrap video');
   if (pdVideo) {
@@ -2517,8 +2542,100 @@ function renderPostDetailAtIndex() {
       pdVideo.muted = true;
       pdVideo.play().catch(() => { });
     });
+    syncPdMuteUI(pdVideo.muted);
   }
 }
+
+function syncPdMuteUI(muted) {
+  const icon = document.getElementById('pdReelMuteIcon');
+  const label = document.getElementById('pdReelMuteLabel');
+  const badgeLabel = document.querySelector('#pdReelSoundBadge span');
+  if (icon) icon.textContent = muted ? '🔇' : '🔊';
+  if (label) label.textContent = muted ? 'Muted' : 'Sound';
+  if (badgeLabel) badgeLabel.textContent = muted ? 'Tap for sound' : 'Sound on';
+}
+
+// ================================================================
+// REELS-STYLE ACTION RAIL (mobile) — wired to the same underlying
+// functions the desktop ⋮ menu already uses, so behavior/persistence
+// stays identical either way.
+// ================================================================
+document.getElementById('pdReelLikeBtn').addEventListener('click', () => togglePostDetailLike(false));
+
+document.getElementById('pdReelCommentBtn').addEventListener('click', () => {
+  postDetailModal.classList.add('pd-comments-open');
+});
+document.getElementById('pdCommentsSheetCloseBtn').addEventListener('click', () => {
+  postDetailModal.classList.remove('pd-comments-open');
+});
+
+document.getElementById('pdReelSaveBtn').addEventListener('click', async () => {
+  await togglePostDetailSave();
+  const saved = !!activePostDetail?.savedByMe;
+  document.getElementById('pdReelSaveIcon').textContent = saved ? '🔖' : '📑';
+  document.getElementById('pdReelSaveLabel').textContent = saved ? 'Saved' : 'Save';
+});
+
+document.getElementById('pdReelShareBtn').addEventListener('click', () => sharePostDetailLink());
+document.getElementById('pdReelReportBtn').addEventListener('click', () => reportActivePost());
+
+document.getElementById('pdReelMuteBtn').addEventListener('click', () => {
+  const pdVideo = document.querySelector('#pdMediaWrap video');
+  if (!pdVideo) return;
+  pdVideo.muted = !pdVideo.muted;
+  syncPdMuteUI(pdVideo.muted);
+});
+document.getElementById('pdReelSoundBadge').addEventListener('click', () => {
+  document.getElementById('pdReelMuteBtn').click();
+});
+
+// ── Double-tap / double-click to like — Instagram's signature gesture ──
+// Works directly on the media container, tracks the tap position so the
+// floating heart pops where the user actually tapped, and never *un*likes
+// (matches native Instagram behavior).
+(function setupDoubleTapToLike() {
+  const mediaWrap = document.getElementById('pdMediaWrap');
+  const heart = document.getElementById('pdDoubleTapHeart');
+  let lastTap = 0;
+  let tapTimer = null;
+
+  function playHeartAt(x, y) {
+    heart.style.left = `${x}px`;
+    heart.style.top = `${y}px`;
+    heart.classList.remove('pd-doubletap-heart-pop');
+    void heart.offsetWidth; // restart animation
+    heart.classList.add('pd-doubletap-heart-pop');
+  }
+
+  async function handleDoubleTap(x, y) {
+    playHeartAt(x, y);
+    await togglePostDetailLike(true);
+  }
+
+  mediaWrap.addEventListener('dblclick', (e) => {
+    const rect = mediaWrap.getBoundingClientRect();
+    handleDoubleTap(e.clientX - rect.left, e.clientY - rect.top);
+  });
+
+  // Touch double-tap detection (dblclick doesn't reliably fire on mobile touch)
+  mediaWrap.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    const touch = e.changedTouches[0];
+    const rect = mediaWrap.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    if (now - lastTap < 300) {
+      clearTimeout(tapTimer);
+      lastTap = 0;
+      handleDoubleTap(x, y);
+    } else {
+      lastTap = now;
+      clearTimeout(tapTimer);
+      tapTimer = setTimeout(() => { lastTap = 0; }, 300);
+    }
+  }, { passive: true });
+})();
 
 function showPrevPost() { if (pdIndex > 0) { pdIndex--; renderPostDetailAtIndex(); } }
 function showNextPost() { if (pdIndex < pdList.length - 1) { pdIndex++; renderPostDetailAtIndex(); } }
@@ -2536,6 +2653,7 @@ document.addEventListener('keydown', (e) => {
 
 function closePostDetail() {
   postDetailModal.classList.add('hidden');
+  postDetailModal.classList.remove('pd-reel-mode', 'pd-comments-open');
   document.getElementById('pdMediaWrap').innerHTML = '';
   document.getElementById('pdCommentInput').value = '';
   document.getElementById('pdMenuDropdown').classList.add('hidden');
@@ -2547,6 +2665,11 @@ function closePostDetail() {
   if (document.getElementById('publicProfileModal').classList.contains('hidden')) {
     document.body.style.overflow = '';
   }
+  // Only restore the Saarthi widget if no other fullscreen media view
+  // (e.g. the mobile Reels feed) is still open underneath.
+  if (!document.getElementById('reelsFeedContainer')?.classList.contains('reels-open')) {
+    document.body.classList.remove('fullscreen-media-open');
+  }
 }
 
 document.getElementById('closePostDetail').addEventListener('click', closePostDetail);
@@ -2557,10 +2680,16 @@ document.getElementById('pdCommentLoginLink').addEventListener('click', (e) => {
   openAuthModal('login');
 });
 
-document.getElementById('pdLikeBtn').addEventListener('click', async () => {
-  if (!activePostDetail) return;
+// Shared like-toggle logic — used by the ⋮/heart button click, the mobile
+// Reels-style rail heart button, and the Instagram-style double-tap gesture
+// on the media itself. `forceLikeOnly` is used by double-tap: Instagram's
+// double-tap only ever *likes* (never unlikes) a post that's already liked,
+// it just still plays the heart animation.
+async function togglePostDetailLike(forceLikeOnly) {
+  if (!activePostDetail) return null;
   const token = getToken();
-  if (!token) { showToast('Please log in to like a post.', 'error'); openAuthModal('login'); return; }
+  if (!token) { showToast('Please log in to like a post.', 'error'); openAuthModal('login'); return null; }
+  if (forceLikeOnly && activePostDetail.likedByMe) return { liked: true, likeCount: activePostDetail.likeCount, skipped: true };
 
   try {
     const res = await fetch(`/api/posts/${activePostDetail._id}/like`, {
@@ -2568,8 +2697,8 @@ document.getElementById('pdLikeBtn').addEventListener('click', async () => {
       headers: { Authorization: `Bearer ${token}` }
     });
     const data = await res.json();
-    if (res.status === 401) { handleAuthExpiry(); return; }
-    if (!data.success) return;
+    if (res.status === 401) { handleAuthExpiry(); return null; }
+    if (!data.success) return null;
 
     activePostDetail.likedByMe = data.liked;
     activePostDetail.likeCount = data.likeCount;
@@ -2577,6 +2706,17 @@ document.getElementById('pdLikeBtn').addEventListener('click', async () => {
     document.getElementById('pdLikeCount').textContent = data.likeCount;
     document.getElementById('pdLikeBtn').classList.toggle('text-red-400', data.liked);
     document.getElementById('pdLikeBtn').classList.toggle('text-gray-400', !data.liked);
+
+    // Keep the mobile Reels-style rail heart in sync too
+    const railIcon = document.getElementById('pdReelLikeIcon');
+    const railCount = document.getElementById('pdReelLikeCount');
+    if (railIcon) railIcon.textContent = data.liked ? '❤️' : '🤍';
+    if (railCount) railCount.textContent = data.likeCount;
+    document.getElementById('pdReelLikeBtn')?.classList.toggle('liked', data.liked);
+
+    // Keep the pdList entry in sync so reopening this post shows the right state
+    const listEntry = pdList[pdIndex];
+    if (listEntry) { listEntry.likedByMe = data.liked; listEntry.likeCount = data.likeCount; }
 
     // Keep the underlying feed card (if visible) in sync
     const cardBtn = document.querySelector(`.post-like-btn[data-id="${activePostDetail._id}"]`);
@@ -2598,10 +2738,15 @@ document.getElementById('pdLikeBtn').addEventListener('click', async () => {
         }
       }
     }
+
+    return data;
   } catch {
     showToast('Network error. Please try again.', 'error');
+    return null;
   }
-});
+}
+
+document.getElementById('pdLikeBtn').addEventListener('click', () => togglePostDetailLike(false));
 
 // ================================================================
 // POST DETAIL — 3-dot menu (Edit/Delete own post, Report others'), Follow/Unfollow
@@ -3101,6 +3246,14 @@ function normalizeFollowListUser(entry) {
   };
 }
 
+// Point 4 fix — Profile Loading Lag / Flash:
+// In-memory cache of the last-rendered profile snapshot per user, kept for the
+// life of the page. Lets openPublicProfile() paint instantly from cache (or from
+// the already-known logged-in user for their own profile) instead of blanking
+// every field and showing a spinner while the network request is in flight —
+// the fresh data still loads in the background and patches the DOM in place.
+const profileRenderCache = {};
+
 async function openPublicProfile(userId) {
   const myUser = getStoredUser();
   const isOwnProfile = !!(myUser && myUser.id === userId);
@@ -3111,16 +3264,53 @@ async function openPublicProfile(userId) {
   modal.scrollTop = 0;
   document.body.style.overflow = 'hidden'; // full-page profile — lock background scroll
 
-  // Reset state
-  document.getElementById('ppPostsGrid').innerHTML = '';
-  document.getElementById('ppPostsEmpty').classList.add('hidden');
-  document.getElementById('ppPostsLoading').classList.remove('hidden');
-  document.getElementById('ppName').textContent = '';
-  document.getElementById('ppUsername').textContent = '';
-  document.getElementById('ppTopBarName').textContent = '';
-  document.getElementById('ppFollowerCount').textContent = '0';
-  document.getElementById('ppFollowingCount').textContent = '0';
-  document.getElementById('ppPostCount').textContent = '0';
+  // ── Optimistic / cached instant paint ──
+  // Prefer a previously-rendered snapshot of this exact profile; failing that,
+  // for the user's own profile we already have their basic info locally
+  // (no network round-trip needed) so use that instead of a blank flash.
+  const cachedSnapshot = profileRenderCache[userId] || (isOwnProfile && myUser ? {
+    name: myUser.name, username: myUser.username, avatarColor: myUser.avatarColor,
+    profilePicture: myUser.profilePicture, followerCount: myUser.followerCount,
+    followingCount: myUser.followingCount, postCount: myUser.postCount, posts: null
+  } : null);
+
+  if (cachedSnapshot) {
+    document.getElementById('ppName').textContent = cachedSnapshot.name || '';
+    document.getElementById('ppUsername').textContent = cachedSnapshot.username ? `@${cachedSnapshot.username}` : '';
+    document.getElementById('ppTopBarName').textContent = cachedSnapshot.name || '';
+    document.getElementById('ppFollowerCount').textContent = cachedSnapshot.followerCount ?? 0;
+    document.getElementById('ppFollowingCount').textContent = cachedSnapshot.followingCount ?? 0;
+    document.getElementById('ppPostCount').textContent = cachedSnapshot.postCount ?? 0;
+    renderAvatarInto(document.getElementById('ppAvatar'), {
+      name: cachedSnapshot.name, avatarColor: cachedSnapshot.avatarColor, profilePicture: cachedSnapshot.profilePicture
+    });
+    if (cachedSnapshot.posts) {
+      allProfilePosts = cachedSnapshot.posts;
+      document.getElementById('ppPostsGrid').classList.remove('hidden');
+      document.getElementById('ppPostsEmpty').classList.add('hidden');
+      document.getElementById('ppPostsLoading').classList.add('hidden');
+      renderProfilePosts('all');
+    } else {
+      // We know who they are but not their posts yet — keep the grid area
+      // in a loading state only (no blank name/avatar flash) while it loads.
+      document.getElementById('ppPostsGrid').innerHTML = '';
+      document.getElementById('ppPostsEmpty').classList.add('hidden');
+      document.getElementById('ppPostsLoading').classList.remove('hidden');
+    }
+  } else {
+    // First-ever view of this profile this session — nothing to paint
+    // optimistically, so fall back to the original loading state.
+    document.getElementById('ppPostsGrid').innerHTML = '';
+    document.getElementById('ppPostsEmpty').classList.add('hidden');
+    document.getElementById('ppPostsLoading').classList.remove('hidden');
+    document.getElementById('ppName').textContent = '';
+    document.getElementById('ppUsername').textContent = '';
+    document.getElementById('ppTopBarName').textContent = '';
+    document.getElementById('ppFollowerCount').textContent = '0';
+    document.getElementById('ppFollowingCount').textContent = '0';
+    document.getElementById('ppPostCount').textContent = '0';
+  }
+
   document.getElementById('ppFriendBtn').disabled = false;
   document.getElementById('ppFriendBtn').textContent = 'Add Friend';
   document.getElementById('ppFriendBtn').classList.remove('hidden');
@@ -3149,6 +3339,13 @@ async function openPublicProfile(userId) {
     const u = data.data;
     currentProfileAuthorInfo = {
       id: u.id, name: u.name, avatarColor: u.avatarColor, profilePicture: u.profilePicture
+    };
+    // Cache this fresh snapshot so the next time this profile is opened
+    // (this session) it paints instantly instead of flashing blank.
+    profileRenderCache[userId] = {
+      name: u.name, username: u.username, avatarColor: u.avatarColor, profilePicture: u.profilePicture,
+      followerCount: u.followerCount ?? 0, followingCount: u.followingCount ?? 0,
+      postCount: (u.posts && u.posts.length) || u.postCount || 0, posts: u.posts
     };
     document.getElementById('ppName').textContent = u.name;
     document.getElementById('ppUsername').textContent = u.username ? `@${u.username}` : '';
